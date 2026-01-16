@@ -35,7 +35,7 @@ app.use(express.urlencoded({ extended: true }));
 const allowedOrigins = [
   "http://localhost:5173",       // Vite dev
   "http://localhost:3000",       // CRA fallback
-  "https://h-msystem.vercel.app" // production
+  "https://h-msystem-mern.vercel.app" // production
 ];
 
 // ✅ Step 1: Basic CORS middleware
@@ -48,7 +48,7 @@ app.use(cors({
 }));
 
 // ✅ Step 2: Explicit preflight handler (BEFORE routes)
-app.options("*", (req, res) => {
+app.options(/.*/, (req, res) => {
   const origin = req.headers.origin;
   
   if (allowedOrigins.includes(origin) || !origin) {

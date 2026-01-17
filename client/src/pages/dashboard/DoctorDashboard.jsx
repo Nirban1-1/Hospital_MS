@@ -363,7 +363,7 @@ const DoctorDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-irisBlueColor5 via-white to-primaryColor5 py-8 px-4">
+      <div className="min-h-screen bg-gradient-to-br from-irisBlueColor5 via-white to-primaryColor5 py-6 sm:py-8 px-3 sm:px-4">
         <div className="container max-w-7xl mx-auto">
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
@@ -377,18 +377,18 @@ const DoctorDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-irisBlueColor5 via-white to-primaryColor5 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-irisBlueColor5 via-white to-primaryColor5 py-6 sm:py-8 px-3 sm:px-4">
       <div className="container max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h2 className="text-4xl font-bold text-headingColor mb-2">
+          <h2 className="text-2xl sm:text-4xl font-bold text-headingColor mb-2">
             Doctor Dashboard
           </h2>
           <p className="text-textColor">Manage your schedule and appointments</p>
         </div>
 
         {/* Specialization Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100 mb-6">
+        <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 border border-gray-100 mb-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purpleColor to-primaryColor flex items-center justify-center">
               <svg
@@ -487,10 +487,10 @@ const DoctorDashboard = () => {
 
         {/* Navigation Tabs */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 mb-6 overflow-hidden">
-          <div className="flex border-b border-gray-200">
+          <div className="grid grid-cols-1 sm:grid-cols-3 border-b border-gray-200">
             <button
               onClick={() => setActiveTab('appointments')}
-              className={`flex-1 px-6 py-4 font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${
+              className={`flex-1 px-4 sm:px-6 py-3 sm:py-4 font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${
                 activeTab === 'appointments'
                   ? 'bg-gradient-to-r from-primaryColor to-irisBlueColor text-white'
                   : 'text-textColor hover:bg-gray-50'
@@ -519,7 +519,7 @@ const DoctorDashboard = () => {
 
             <button
               onClick={() => setActiveTab('slots')}
-              className={`flex-1 px-6 py-4 font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${
+              className={`flex-1 px-4 sm:px-6 py-3 sm:py-4 font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${
                 activeTab === 'slots'
                   ? 'bg-gradient-to-r from-primaryColor to-irisBlueColor text-white'
                   : 'text-textColor hover:bg-gray-50'
@@ -548,7 +548,7 @@ const DoctorDashboard = () => {
 
             <button
               onClick={() => setActiveTab('treated')}
-              className={`flex-1 px-6 py-4 font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${
+              className={`flex-1 px-4 sm:px-6 py-3 sm:py-4 font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${
                 activeTab === 'treated'
                   ? 'bg-gradient-to-r from-primaryColor to-irisBlueColor text-white'
                   : 'text-textColor hover:bg-gray-50'
@@ -577,7 +577,7 @@ const DoctorDashboard = () => {
           </div>
 
           {/* Tab Content */}
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             {/* Appointments Tab */}
             {activeTab === 'appointments' && (
               <div>
@@ -654,7 +654,7 @@ const DoctorDashboard = () => {
                               key={appt._id}
                               className="border-2 border-gray-200 rounded-xl bg-white overflow-hidden"
                             >
-                              <summary className="cursor-pointer select-none px-4 py-4 hover:bg-gray-50 transition-colors flex items-center justify-between gap-4">
+                              <summary className="cursor-pointer select-none px-4 py-4 hover:bg-gray-50 transition-colors flex flex-col sm:flex-row sm:items-center items-start justify-between gap-4">
                                 <div className="flex items-center gap-3 min-w-0">
                                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primaryColor to-yellowColor flex items-center justify-center text-white font-semibold">
                                     {appt.patient_name
@@ -769,7 +769,7 @@ const DoctorDashboard = () => {
                               key={appt._id}
                               className="border-2 border-gray-200 rounded-xl bg-white overflow-hidden"
                             >
-                              <summary className="cursor-pointer select-none px-4 py-4 hover:bg-gray-50 transition-colors flex items-center justify-between gap-4">
+                              <summary className="cursor-pointer select-none px-4 py-4 hover:bg-gray-50 transition-colors flex flex-col sm:flex-row sm:items-center items-start justify-between gap-4">
                                 <div className="flex items-center gap-3 min-w-0">
                                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primaryColor to-yellowColor flex items-center justify-center text-white font-semibold">
                                     {appt.patient_name
@@ -843,7 +843,7 @@ const DoctorDashboard = () => {
                       <h4 className="text-sm font-semibold text-textColor mb-3">
                         PATIENT INFORMATION
                       </h4>
-                      <div className="flex items-center gap-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center items-start gap-4">
                         {/* Patient Avatar */}
                         <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primaryColor to-yellowColor flex items-center justify-center text-white font-bold text-2xl shadow-md">
                           {currentAppointment.patient_name
@@ -1069,7 +1069,7 @@ const DoctorDashboard = () => {
                                     key={med.medicine_id}
                                     className="bg-gray-50 rounded-xl p-4 space-y-2"
                                   >
-                                    <div className="flex items-center justify-between">
+                                    <div className="flex flex-col sm:flex-row sm:items-center items-start sm:justify-between gap-3">
                                       <p className="font-semibold text-headingColor">
                                         {med.name}
                                       </p>
@@ -1228,7 +1228,7 @@ const DoctorDashboard = () => {
                       </div>
 
                       {/* Test Investigation Section */}
-                      <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100 mb-6">
+                      <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 border border-gray-100 mb-6">
                         <h3 className="text-xl font-bold text-headingColor mb-4">
                           Prescribe Tests (Optional)
                         </h3>
@@ -1266,7 +1266,7 @@ const DoctorDashboard = () => {
                             {selectedTests.map((t) => (
                               <div
                                 key={t.testId}
-                                className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl"
+                                className="flex flex-col sm:flex-row sm:items-center items-stretch gap-3 bg-gray-50 p-3 rounded-xl"
                               >
                                 <span className="font-semibold flex-1">
                                   {t.testName}
@@ -1278,7 +1278,7 @@ const DoctorDashboard = () => {
                                   onChange={(e) =>
                                     updateTestDate(t.testId, e.target.value)
                                   }
-                                  className="border px-2 py-1 rounded"
+                                  className="border px-2 py-1 rounded w-full sm:w-auto"
                                 />
 
                                 <button
@@ -1295,7 +1295,7 @@ const DoctorDashboard = () => {
                       </div>
 
                       {/* Submit buttons */}
-                      <div className="flex gap-3 mt-6">
+                      <div className="flex flex-col sm:flex-row gap-3 mt-6">
                         <button
                           onClick={() => handlePrescribe(showFormId)}
                           className="flex-1 px-6 py-3 bg-gradient-to-r from-purpleColor to-irisBlueColor text-white font-semibold rounded-xl hover:shadow-lg transition-all duration-300"
@@ -1381,7 +1381,7 @@ const DoctorDashboard = () => {
                 {/* Display Existing Slots */}
                 {slots.length > 0 && (
                   <div className="mt-8">
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
                       <h4 className="text-lg font-semibold text-headingColor">
                         Your Available Slots
                       </h4>
@@ -1398,7 +1398,7 @@ const DoctorDashboard = () => {
                         >
                           {/* Date Header */}
                           <div className="bg-gradient-to-r from-irisBlueColor to-primaryColor px-6 py-4">
-                            <div className="flex items-center justify-between">
+                            <div className="flex flex-col sm:flex-row sm:items-center items-start sm:justify-between gap-3">
                               <div className="flex items-center gap-3">
                                 <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
                                   <svg
@@ -1584,8 +1584,8 @@ const DoctorDashboard = () => {
                         className="border-2 border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all duration-300 cursor-pointer"
                         onClick={() => fetchPatientHistory(patient.patient_id)}
                       >
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center gap-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+                          <div className="flex flex-col sm:flex-row sm:items-center items-start gap-4">
                             <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primaryColor to-yellowColor flex items-center justify-center text-white font-bold text-xl">
                               {patient.patient_name?.charAt(0).toUpperCase()}
                             </div>

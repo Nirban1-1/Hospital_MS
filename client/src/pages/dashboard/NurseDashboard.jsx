@@ -9,10 +9,7 @@ const NurseDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const headers = useMemo(
-    () => ({ Authorization: `Bearer ${token}` }),
-    [token]
-  );
+  const headers = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token]);
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -62,47 +59,69 @@ const NurseDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primaryColor5 via-white to-irisBlueColor5 py-8 px-4">
-      <div className="container max-w-5xl mx-auto space-y-6">
-        <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
-          <h2 className="text-3xl font-bold text-headingColor">Nurse Dashboard</h2>
-          <p className="text-textColor mt-1">Your profile and assigned shifts.</p>
+    <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-primaryColor5 via-white to-irisBlueColor5 py-5 sm:py-8 px-3 sm:px-4">
+      <div className="mx-auto w-full max-w-5xl space-y-4 sm:space-y-6">
+        {/* Header */}
+        <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 border border-gray-100">
+          <h2 className="text-2xl sm:text-3xl font-bold text-headingColor">
+            Nurse Dashboard
+          </h2>
+          <p className="text-sm sm:text-base text-textColor mt-1">
+            Your profile and assigned shifts.
+          </p>
         </div>
 
+        {/* Loading / Error / Content */}
         {loading ? (
-          <div className="bg-white rounded-2xl shadow p-6 border border-gray-100">
-            <p className="text-textColor">Loading...</p>
+          <div className="bg-white rounded-2xl shadow p-4 sm:p-6 border border-gray-100">
+            <p className="text-textColor text-sm sm:text-base">Loading...</p>
           </div>
         ) : error ? (
-          <div className="bg-red-50 border border-red-200 rounded-2xl p-6">
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-4 sm:p-6">
             <p className="text-red-700 font-semibold">Error</p>
-            <p className="text-red-700 text-sm mt-1">{error}</p>
+            <p className="text-red-700 text-sm mt-1 break-words">{error}</p>
           </div>
         ) : (
           <>
             {/* Personal info */}
-            <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
-              <h3 className="text-xl font-bold text-headingColor mb-4">Personal info</h3>
+            <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 border border-gray-100">
+              <h3 className="text-lg sm:text-xl font-bold text-headingColor mb-3 sm:mb-4">
+                Personal info
+              </h3>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-textColor70 font-semibold uppercase text-xs">Name</p>
-                  <p className="text-headingColor font-medium">{profile?.name || "N/A"}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
+                <div className="min-w-0">
+                  <p className="text-textColor70 font-semibold uppercase text-xs">
+                    Name
+                  </p>
+                  <p className="text-headingColor font-medium break-words">
+                    {profile?.name || "N/A"}
+                  </p>
                 </div>
 
-                <div>
-                  <p className="text-textColor70 font-semibold uppercase text-xs">Email</p>
-                  <p className="text-headingColor font-medium">{profile?.email || "N/A"}</p>
+                <div className="min-w-0">
+                  <p className="text-textColor70 font-semibold uppercase text-xs">
+                    Email
+                  </p>
+                  <p className="text-headingColor font-medium break-all">
+                    {profile?.email || "N/A"}
+                  </p>
                 </div>
 
-                <div>
-                  <p className="text-textColor70 font-semibold uppercase text-xs">Phone</p>
-                  <p className="text-headingColor font-medium">{profile?.phone || "N/A"}</p>
+                <div className="min-w-0">
+                  <p className="text-textColor70 font-semibold uppercase text-xs">
+                    Phone
+                  </p>
+                  <p className="text-headingColor font-medium break-words">
+                    {profile?.phone || "N/A"}
+                  </p>
                 </div>
 
-                <div>
-                  <p className="text-textColor70 font-semibold uppercase text-xs">Staff category</p>
-                  <p className="text-headingColor font-medium">
+                <div className="min-w-0">
+                  <p className="text-textColor70 font-semibold uppercase text-xs">
+                    Staff category
+                  </p>
+                  <p className="text-headingColor font-medium break-words">
                     {profile?.staffcategory || "nurse"}
                   </p>
                 </div>
@@ -110,16 +129,20 @@ const NurseDashboard = () => {
             </div>
 
             {/* Schedule */}
-            <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
-              <div className="flex items-center justify-between gap-3 mb-4">
-                <h3 className="text-xl font-bold text-headingColor">My schedule</h3>
-                <span className="text-xs font-semibold px-3 py-1 rounded-full bg-primaryColor10 text-primaryColor">
+            <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 border border-gray-100">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 mb-3 sm:mb-4">
+                <h3 className="text-lg sm:text-xl font-bold text-headingColor">
+                  My schedule
+                </h3>
+                <span className="w-fit text-xs font-semibold px-3 py-1 rounded-full bg-primaryColor10 text-primaryColor">
                   {schedules.length} shifts
                 </span>
               </div>
 
               {schedules.length === 0 ? (
-                <p className="text-textColor">No shifts assigned yet.</p>
+                <p className="text-textColor text-sm sm:text-base">
+                  No shifts assigned yet.
+                </p>
               ) : (
                 <div className="space-y-3">
                   {schedules.map((s) => {
@@ -128,29 +151,42 @@ const NurseDashboard = () => {
                     const shift = getShiftInfo(s.shift_type);
 
                     return (
-                      <div key={s._id} className="border border-gray-200 rounded-xl p-4">
+                      <div
+                        key={s._id}
+                        className="border border-gray-200 rounded-xl p-4"
+                      >
                         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
-                          <div>
+                          <div className="min-w-0">
                             <p className="text-headingColor font-semibold">
                               {shift.label} shift
                             </p>
-                            <p className="text-textColor text-sm">
-                              Date: {formatFullDate(s.date)}
+                            <p className="text-textColor text-sm break-words">
+                              <span className="font-semibold text-headingColor">
+                                Date:
+                              </span>{" "}
+                              {formatFullDate(s.date)}
                             </p>
-                            <p className="text-textColor text-sm">
-                              Time: {shift.time}
+                            <p className="text-textColor text-sm break-words">
+                              <span className="font-semibold text-headingColor">
+                                Time:
+                              </span>{" "}
+                              {shift.time}
                             </p>
                           </div>
 
-                          <div className="text-sm text-textColor">
-                            <p>
+                          <div className="min-w-0 text-sm text-textColor">
+                            <p className="break-words">
                               Staff:{" "}
                               <span className="font-semibold text-headingColor">
                                 {staffObj?.name || profile?.name || "N/A"}
                               </span>
                             </p>
-                            <p>Phone: {staffObj?.phone || profile?.phone || "N/A"}</p>
-                            <p>Email: {staffObj?.email || profile?.email || "N/A"}</p>
+                            <p className="break-words">
+                              Phone: {staffObj?.phone || profile?.phone || "N/A"}
+                            </p>
+                            <p className="break-all">
+                              Email: {staffObj?.email || profile?.email || "N/A"}
+                            </p>
                           </div>
                         </div>
                       </div>

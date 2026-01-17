@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import api from "../../api/api";
 
 const DonorDashboard = () => {
@@ -13,9 +13,7 @@ const DonorDashboard = () => {
 
   const token = localStorage.getItem("token");
 
-  const headers = {
-    Authorization: `Bearer ${token}`,
-  };
+  const headers = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token]);
 
   const formatDateTime = (d) => {
     if (!d) return "N/A";
@@ -46,7 +44,7 @@ const DonorDashboard = () => {
 
   const fetchRequests = async () => {
     try {
-      // Donors endpoint from bloodRoutes.js: GET /api/blood/requests [file:248]
+      // Donors endpoint from bloodRoutes.js: GET /api/blood/requests
       const res = await api.get("/api/blood/requests", { headers });
       setBloodRequests(res.data || []);
     } catch (err) {
@@ -91,7 +89,6 @@ const DonorDashboard = () => {
 
   const acceptRequest = async (id) => {
     try {
-      // Donors accept endpoint: PATCH /api/blood/accept/:id [file:248]
       await api.patch(`/api/blood/accept/${id}`, {}, { headers });
       alert("Request accepted successfully.");
       await refreshAll();
@@ -103,7 +100,6 @@ const DonorDashboard = () => {
 
   const completeDonation = async (id) => {
     try {
-      // Controller route: PATCH /api/blood/complete/:id [file:249]
       await api.patch(`/api/blood/complete/${id}`, {}, { headers });
       alert("Marked as completed.");
       await refreshAll();
@@ -113,228 +109,241 @@ const DonorDashboard = () => {
     }
   };
 
-  // getPendingRequests adds current_user_id in response [file:249]
-  const isMine = (req) => String(req?.donor_id || "") === String(req?.current_user_id || "");
+  // getPendingRequests adds current_user_id in response
+  const isMine = (req) =>
+    String(req?.donor_id || "") === String(req?.current_user_id || "");
 
   return (
-    <div className="container">
-      <h2 className="heading mt-[30px]">Blood Donor Dashboard</h2>
+    <div className="min-h-screen bg-gray-50 px-3 sm:px-6 py-5 sm:py-8">
+      <div className="mx-auto w-full max-w-5xl">
+        <h2 className="text-2xl sm:text-3xl font-bold text-headingColor mt-1 sm:mt-2">
+          Blood Donor Dashboard
+        </h2>
 
-      {loading ? (
-        <p className="text_para mt-5">Loading...</p>
-      ) : (
-        <>
-          {/* Availability */}
-          <div className="my-6">
-            <div className="flex items-center justify-between gap-3 flex-wrap">
-              <h3 className="font-semibold text-lg">Availability</h3>
+        {loading ? (
+          <p className="text_para mt-5">Loading...</p>
+        ) : (
+          <>
+            {/* Availability */}
+            <div className="mt-6 bg-white border border-gray-100 rounded-2xl shadow p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <h3 className="font-semibold text-lg">Availability</h3>
+
+                <button
+                  onClick={refreshAll}
+                  className="w-full sm:w-auto px-4 py-2 rounded-xl font-semibold border border-gray-200 bg-white hover:border-gray-300 transition"
+                >
+                  Refresh
+                </button>
+              </div>
+
               <button
-                onClick={refreshAll}
-                className="px-4 py-2 rounded font-semibold border border-gray-200 bg-white"
+                onClick={toggleAvailability}
+                className={`mt-4 w-full sm:w-auto px-4 py-2 rounded-xl font-semibold transition ${
+                  available
+                    ? "bg-green-600 text-white hover:bg-green-700"
+                    : "bg-gray-500 text-white hover:bg-gray-600"
+                }`}
               >
-                Refresh
+                {available ? "Active - Available to Donate" : "Inactive - Not Available"}
               </button>
             </div>
 
-            <button
-              onClick={toggleAvailability}
-              className={`mt-3 px-4 py-2 rounded font-semibold ${
-                available ? "bg-green-600 text-white" : "bg-gray-400 text-white"
-              }`}
-            >
-              {available ? "Active - Available to Donate" : "Inactive - Not Available"}
-            </button>
-          </div>
+            {/* Incoming Blood Requests */}
+            <div className="mt-6 bg-white border border-gray-100 rounded-2xl shadow p-4 sm:p-6">
+              <h3 className="font-semibold text-lg mb-3">Incoming Blood Requests</h3>
 
-          {/* Incoming Blood Requests */}
-          <div className="my-6">
-            <h3 className="font-semibold text-lg mb-2">Incoming Blood Requests</h3>
+              {bloodRequests.length === 0 ? (
+                <p className="text-sm text-gray-600">No requests at this time.</p>
+              ) : (
+                <ul className="space-y-3">
+                  {bloodRequests.map((req) => {
+                    const name = req.name || req.patient_id?.name || "Unknown";
+                    const phone = req.phone || req.patient_id?.phone || "N/A";
+                    const email = req.email || req.patient_id?.email || "N/A";
 
-            {bloodRequests.length === 0 ? (
-              <p>No requests at this time.</p>
-            ) : (
-              <ul className="space-y-3">
-                {bloodRequests.map((req) => {
-                  const name = req.name || req.patient_id?.name || "Unknown";
-                  const phone = req.phone || req.patient_id?.phone || "N/A";
-                  const email = req.email || req.patient_id?.email || "N/A";
+                    return (
+                      <li key={req._id} className="border border-gray-200 p-4 sm:p-5 rounded-2xl bg-white">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                          <div className="min-w-0">
+                            <h4 className="text-base sm:text-lg font-bold text-headingColor break-words">
+                              {name}
+                            </h4>
 
-                  return (
-                    <li key={req._id} className="border p-5 rounded-xl shadow bg-white">
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <h4 className="text-lg font-bold text-headingColor">{name}</h4>
+                            <div className="mt-1 text-sm text-textColor flex flex-wrap gap-x-3 gap-y-1">
+                              <span>
+                                <span className="font-semibold">Blood Group:</span>{" "}
+                                {req.blood_group || "N/A"}
+                              </span>
+                              <span>
+                                <span className="font-semibold">Age:</span>{" "}
+                                {req.age ?? "N/A"}
+                              </span>
+                              <span>
+                                <span className="font-semibold">Gender:</span>{" "}
+                                {genderLabel(req.gender)}
+                              </span>
+                            </div>
+                          </div>
 
-                          <div className="mt-1 text-sm text-textColor flex flex-wrap gap-x-3 gap-y-1">
-                            <span>
-                              <span className="font-semibold">Blood Group:</span>{" "}
-                              {req.blood_group || "N/A"}
-                            </span>
-                            <span>
-                              <span className="font-semibold">Age:</span> {req.age ?? "N/A"}
-                            </span>
-                            <span>
-                              <span className="font-semibold">Gender:</span>{" "}
-                              {genderLabel(req.gender)}
-                            </span>
+                          <span
+                            className={`w-fit px-3 py-1 rounded-full text-xs font-semibold ${
+                              req.status === "requested"
+                                ? "bg-yellow-100 text-yellow-700"
+                                : req.status === "accepted"
+                                ? "bg-green-100 text-green-700"
+                                : req.status === "completed"
+                                ? "bg-emerald-100 text-emerald-700"
+                                : "bg-gray-100 text-gray-700"
+                            }`}
+                          >
+                            {req.status || "N/A"}
+                          </span>
+                        </div>
+
+                        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                          <div className="p-3 rounded-xl border border-gray-200 bg-slate-50">
+                            <p className="font-semibold mb-2 text-headingColor">Contact</p>
+                            <p className="break-words">
+                              <span className="font-semibold">Phone:</span> {phone}
+                            </p>
+                            <p className="break-all">
+                              <span className="font-semibold">Email:</span> {email}
+                            </p>
+                          </div>
+
+                          <div className="p-3 rounded-xl border border-gray-200 bg-slate-50">
+                            <p className="font-semibold mb-2 text-headingColor">Timing</p>
+                            <p className="break-words">
+                              <span className="font-semibold">Requested:</span>{" "}
+                              {formatDateTime(req.requested_at)}
+                            </p>
+                            <p className="break-words">
+                              <span className="font-semibold">Accepted:</span>{" "}
+                              {formatDateTime(req.accepted_at)}
+                            </p>
+                            <p className="break-words">
+                              <span className="font-semibold">Completed:</span>{" "}
+                              {formatDateTime(req.completed_at)}
+                            </p>
                           </div>
                         </div>
 
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                            req.status === "requested"
-                              ? "bg-yellow-100 text-yellow-700"
-                              : req.status === "accepted"
-                              ? "bg-green-100 text-green-700"
-                              : req.status === "completed"
-                              ? "bg-emerald-100 text-emerald-700"
-                              : "bg-gray-100 text-gray-700"
-                          }`}
-                        >
-                          {req.status || "N/A"}
-                        </span>
-                      </div>
+                        {req.note ? (
+                          <div className="mt-3 p-3 rounded-xl border border-blue-200 bg-blue-50">
+                            <p className="font-semibold text-headingColor mb-1">Note</p>
+                            <p className="text-sm text-textColor break-words">{req.note}</p>
+                          </div>
+                        ) : null}
 
-                      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                        <div className="p-3 rounded-lg border bg-slate-50">
-                          <p className="font-semibold mb-2 text-headingColor">Contact</p>
-                          <p>
-                            <span className="font-semibold">Phone:</span> {phone}
-                          </p>
-                          <p className="break-all">
-                            <span className="font-semibold">Email:</span> {email}
-                          </p>
+                        {/* Actions */}
+                        {req.status === "requested" && (
+                          <button
+                            onClick={() => acceptRequest(req._id)}
+                            className="mt-4 w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-xl font-semibold hover:bg-blue-700 transition"
+                          >
+                            Accept Request
+                          </button>
+                        )}
+
+                        {req.status === "accepted" && isMine(req) && (
+                          <button
+                            onClick={() => completeDonation(req._id)}
+                            className="mt-4 w-full sm:w-auto bg-green-600 text-white px-4 py-2 rounded-xl font-semibold hover:bg-green-700 transition"
+                          >
+                            Mark as Completed
+                          </button>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+
+            {/* Donation History (Completed) */}
+            <div className="mt-6 bg-white border border-gray-100 rounded-2xl shadow p-4 sm:p-6">
+              <h3 className="font-semibold text-lg mb-3">Donation History</h3>
+
+              {donationHistoryInfo.length === 0 ? (
+                <p className="text-sm text-gray-600">No completed donations yet.</p>
+              ) : (
+                <ul className="space-y-3">
+                  {donationHistoryInfo.map((d) => {
+                    const name = d.name || d.patient_id?.name || "Unknown";
+                    const phone = d.phone || d.patient_id?.phone || "N/A";
+                    const email = d.email || d.patient_id?.email || "N/A";
+
+                    return (
+                      <li key={d.id || d._id} className="border border-gray-200 p-4 sm:p-5 rounded-2xl bg-white">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                          <div className="min-w-0">
+                            <h4 className="text-base sm:text-lg font-bold text-headingColor break-words">
+                              {name}
+                            </h4>
+                            <div className="mt-1 text-sm text-textColor flex flex-wrap gap-x-3 gap-y-1">
+                              <span>
+                                <span className="font-semibold">Blood Group:</span>{" "}
+                                {d.blood_group || "N/A"}
+                              </span>
+                              <span>
+                                <span className="font-semibold">Age:</span> {d.age ?? "N/A"}
+                              </span>
+                              <span>
+                                <span className="font-semibold">Gender:</span>{" "}
+                                {genderLabel(d.gender)}
+                              </span>
+                            </div>
+                          </div>
+
+                          <span className="w-fit px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
+                            completed
+                          </span>
                         </div>
 
-                        <div className="p-3 rounded-lg border bg-slate-50">
-                          <p className="font-semibold mb-2 text-headingColor">Timing</p>
-                          <p>
-                            <span className="font-semibold">Requested:</span>{" "}
-                            {formatDateTime(req.requested_at)}
-                          </p>
-                          <p>
-                            <span className="font-semibold">Accepted:</span>{" "}
-                            {formatDateTime(req.accepted_at)}
-                          </p>
-                          <p>
-                            <span className="font-semibold">Completed:</span>{" "}
-                            {formatDateTime(req.completed_at)}
-                          </p>
-                        </div>
-                      </div>
+                        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                          <div className="p-3 rounded-xl border border-gray-200 bg-slate-50">
+                            <p className="font-semibold mb-2 text-headingColor">Contact</p>
+                            <p className="break-words">
+                              <span className="font-semibold">Phone:</span> {phone}
+                            </p>
+                            <p className="break-all">
+                              <span className="font-semibold">Email:</span> {email}
+                            </p>
+                          </div>
 
-                      {req.note ? (
-                        <div className="mt-3 p-3 rounded-lg border bg-blue-50">
-                          <p className="font-semibold text-headingColor mb-1">Note</p>
-                          <p className="text-sm text-textColor">{req.note}</p>
-                        </div>
-                      ) : null}
-
-                      {/* Actions */}
-                      {req.status === "requested" && (
-                        <button
-                          onClick={() => acceptRequest(req._id)}
-                          className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold"
-                        >
-                          Accept Request
-                        </button>
-                      )}
-
-                      {req.status === "accepted" && isMine(req) && (
-                        <button
-                          onClick={() => completeDonation(req._id)}
-                          className="mt-4 bg-green-600 text-white px-4 py-2 rounded-lg font-semibold"
-                        >
-                          Mark as Completed
-                        </button>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-
-          {/* Donation History (Completed) */}
-          <div className="my-6">
-            <h3 className="font-semibold text-lg mb-2">Donation History</h3>
-
-            {donationHistoryInfo.length === 0 ? (
-              <p>No completed donations yet.</p>
-            ) : (
-              <ul className="space-y-3">
-                {donationHistoryInfo.map((d) => {
-                  const name = d.name || d.patient_id?.name || "Unknown";
-                  const phone = d.phone || d.patient_id?.phone || "N/A";
-                  const email = d.email || d.patient_id?.email || "N/A";
-
-                  return (
-                    <li key={d.id || d._id} className="border p-5 rounded-xl shadow bg-white">
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <h4 className="text-lg font-bold text-headingColor">{name}</h4>
-                          <div className="mt-1 text-sm text-textColor flex flex-wrap gap-x-3 gap-y-1">
-                            <span>
-                              <span className="font-semibold">Blood Group:</span>{" "}
-                              {d.blood_group || "N/A"}
-                            </span>
-                            <span>
-                              <span className="font-semibold">Age:</span> {d.age ?? "N/A"}
-                            </span>
-                            <span>
-                              <span className="font-semibold">Gender:</span>{" "}
-                              {genderLabel(d.gender)}
-                            </span>
+                          <div className="p-3 rounded-xl border border-gray-200 bg-slate-50">
+                            <p className="font-semibold mb-2 text-headingColor">Timing</p>
+                            <p className="break-words">
+                              <span className="font-semibold">Requested:</span>{" "}
+                              {formatDateTime(d.requested_at)}
+                            </p>
+                            <p className="break-words">
+                              <span className="font-semibold">Accepted:</span>{" "}
+                              {formatDateTime(d.accepted_at)}
+                            </p>
+                            <p className="break-words">
+                              <span className="font-semibold">Completed:</span>{" "}
+                              {formatDateTime(d.completed_at)}
+                            </p>
                           </div>
                         </div>
 
-                        <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
-                          completed
-                        </span>
-                      </div>
-
-                      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                        <div className="p-3 rounded-lg border bg-slate-50">
-                          <p className="font-semibold mb-2 text-headingColor">Contact</p>
-                          <p>
-                            <span className="font-semibold">Phone:</span> {phone}
-                          </p>
-                          <p className="break-all">
-                            <span className="font-semibold">Email:</span> {email}
-                          </p>
-                        </div>
-
-                        <div className="p-3 rounded-lg border bg-slate-50">
-                          <p className="font-semibold mb-2 text-headingColor">Timing</p>
-                          <p>
-                            <span className="font-semibold">Requested:</span>{" "}
-                            {formatDateTime(d.requested_at)}
-                          </p>
-                          <p>
-                            <span className="font-semibold">Accepted:</span>{" "}
-                            {formatDateTime(d.accepted_at)}
-                          </p>
-                          <p>
-                            <span className="font-semibold">Completed:</span>{" "}
-                            {formatDateTime(d.completed_at)}
-                          </p>
-                        </div>
-                      </div>
-
-                      {d.note ? (
-                        <div className="mt-3 p-3 rounded-lg border bg-blue-50">
-                          <p className="font-semibold text-headingColor mb-1">Note</p>
-                          <p className="text-sm text-textColor">{d.note}</p>
-                        </div>
-                      ) : null}
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-        </>
-      )}
+                        {d.note ? (
+                          <div className="mt-3 p-3 rounded-xl border border-blue-200 bg-blue-50">
+                            <p className="font-semibold text-headingColor mb-1">Note</p>
+                            <p className="text-sm text-textColor break-words">{d.note}</p>
+                          </div>
+                        ) : null}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 };

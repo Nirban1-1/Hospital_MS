@@ -88,6 +88,7 @@ const Header = () => {
       ]
     : [{ path: '/home', display: 'Home' }];
 
+  /* ================= UI ================= */
   return (
     <header ref={headerRef} className="header bg-white shadow-sm">
       <div className="container">
@@ -116,16 +117,19 @@ const Header = () => {
             ))}
           </ul>
 
-          {/* Desktop Buttons */}
+          {/* Right Buttons (Desktop) */}
           <div className="hidden md:flex items-center gap-4">
             {isAuthenticated ? (
               <button
                 onClick={() => {
                   localStorage.clear();
+                  setIsAuthenticated(false);
+                  setRole(null);
+                  setStaffCategory(null);
                   window.dispatchEvent(new Event('authChange'));
                   navigate('/');
                 }}
-                className="bg-primaryColor text-white px-5 py-2 rounded-md font-[600]"
+                className="bg-primaryColor text-white px-6 py-2 rounded-full font-[600]"
               >
                 Logout
               </button>
@@ -133,13 +137,13 @@ const Header = () => {
               <>
                 <button
                   onClick={() => navigate('/login')}
-                  className="border-2 border-primaryColor text-primaryColor px-5 py-2 rounded-md font-[600]"
+                  className="border-2 border-primaryColor text-primaryColor px-6 py-2 rounded-full font-[600]"
                 >
                   Login
                 </button>
                 <button
                   onClick={() => navigate('/signup')}
-                  className="bg-primaryColor text-white px-5 py-2 rounded-md font-[600]"
+                  className="bg-primaryColor text-white px-6 py-2 rounded-full font-[600]"
                 >
                   Sign Up
                 </button>
@@ -166,7 +170,11 @@ const Header = () => {
                 <NavLink
                   to={link.path}
                   onClick={() => setMenuOpen(false)}
-                  className="text-textColor font-[500]"
+                  className={({ isActive }) =>
+                    isActive
+                      ? 'text-primaryColor font-[600]'
+                      : 'text-textColor font-[500]'
+                  }
                 >
                   {link.display}
                 </NavLink>
@@ -182,7 +190,7 @@ const Header = () => {
                     window.dispatchEvent(new Event('authChange'));
                     navigate('/');
                   }}
-                  className="w-full bg-gray-100 text-primaryColor py-2 rounded-md font-[600] hover:bg-gray-200"
+                  className="w-full bg-primaryColor text-white py-2 rounded-full font-[600]"
                 >
                   Logout
                 </button>
@@ -193,7 +201,7 @@ const Header = () => {
                       setMenuOpen(false);
                       navigate('/login');
                     }}
-                    className="w-full bg-gray-100 text-primaryColor py-2 rounded-md font-[600] hover:bg-gray-200"
+                    className="w-full border-2 border-primaryColor text-primaryColor py-2 rounded-full font-[600]"
                   >
                     Login
                   </button>
@@ -202,7 +210,7 @@ const Header = () => {
                       setMenuOpen(false);
                       navigate('/signup');
                     }}
-                    className="w-full bg-primaryColor/10 text-primaryColor py-2 rounded-md font-[600] hover:bg-primaryColor/20"
+                    className="w-full bg-primaryColor text-white py-2 rounded-full font-[600]"
                   >
                     Sign Up
                   </button>

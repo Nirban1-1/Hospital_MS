@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../../api/api";
 
 const DonorDashboard = () => {
   const [available, setAvailable] = useState(false);
@@ -37,7 +37,7 @@ const DonorDashboard = () => {
 
   const fetchDashboard = async () => {
     try {
-      const res = await axios.get("/api/donor/dashboard", { headers });
+      const res = await api.get("/api/donor/dashboard", { headers });
       setAvailable(res.data.available);
     } catch (err) {
       console.error("Failed to load donor dashboard:", err);
@@ -47,7 +47,7 @@ const DonorDashboard = () => {
   const fetchRequests = async () => {
     try {
       // Donors endpoint from bloodRoutes.js: GET /api/blood/requests [file:248]
-      const res = await axios.get("/api/blood/requests", { headers });
+      const res = await api.get("/api/blood/requests", { headers });
       setBloodRequests(res.data || []);
     } catch (err) {
       console.error("Failed to load blood requests:", err);
@@ -57,7 +57,7 @@ const DonorDashboard = () => {
   const fetchDonationHistory = async () => {
     try {
       // New route you will add: GET /api/blood/history
-      const res = await axios.get("/api/blood/history", { headers });
+      const res = await api.get("/api/blood/history", { headers });
       setDonationHistoryInfo(res.data || []);
     } catch (err) {
       console.error("Failed to load donation history:", err);
@@ -81,7 +81,7 @@ const DonorDashboard = () => {
 
   const toggleAvailability = async () => {
     try {
-      const res = await axios.patch("/api/donor/availability", {}, { headers });
+      const res = await api.patch("/api/donor/availability", {}, { headers });
       setAvailable(res.data.available);
     } catch (err) {
       console.error("Failed to update availability:", err);
@@ -92,7 +92,7 @@ const DonorDashboard = () => {
   const acceptRequest = async (id) => {
     try {
       // Donors accept endpoint: PATCH /api/blood/accept/:id [file:248]
-      await axios.patch(`/api/blood/accept/${id}`, {}, { headers });
+      await api.patch(`/api/blood/accept/${id}`, {}, { headers });
       alert("Request accepted successfully.");
       await refreshAll();
     } catch (err) {
@@ -104,7 +104,7 @@ const DonorDashboard = () => {
   const completeDonation = async (id) => {
     try {
       // Controller route: PATCH /api/blood/complete/:id [file:249]
-      await axios.patch(`/api/blood/complete/${id}`, {}, { headers });
+      await api.patch(`/api/blood/complete/${id}`, {}, { headers });
       alert("Marked as completed.");
       await refreshAll();
     } catch (err) {

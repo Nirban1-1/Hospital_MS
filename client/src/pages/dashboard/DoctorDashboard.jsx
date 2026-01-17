@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../../api/api';
 
 const DoctorDashboard = () => {
   const [specialization, setSpecialization] = useState('');
@@ -40,7 +40,7 @@ const DoctorDashboard = () => {
   useEffect(() => {
     const fetchDoctorData = async () => {
       try {
-        const res = await axios.get('/api/doctor/dashboard', { headers });
+        const res = await api.get('/api/doctor/dashboard', { headers });
         setSpecialization(res.data.doctor.specialization || '');
         setSlots(res.data.doctor.available_slots || []);
         setAppointments(res.data.appointments || []);
@@ -63,7 +63,7 @@ const DoctorDashboard = () => {
       }
       setIsSearching(true);
       try {
-        const res = await axios.get(
+        const res = await api.get(
           `/api/medicines/autocomplete?q=${medicineSearch}`,
           { headers }
         );
@@ -92,7 +92,7 @@ const DoctorDashboard = () => {
     const timer = setTimeout(async () => {
       try {
         setIsSearchingTests(true);
-        const res = await axios.get(`/api/tests/search?q=${testQuery}`, {
+        const res = await api.get(`/api/tests/search?q=${testQuery}`, {
           headers,
         });
         const data = res.data;
@@ -114,7 +114,7 @@ const DoctorDashboard = () => {
 
   const handleSpecializationUpdate = async () => {
     try {
-      await axios.put(
+      await api.put(
         '/api/doctor/specialization',
         { specialization },
         { headers }
@@ -139,7 +139,7 @@ const DoctorDashboard = () => {
     }
 
     try {
-      const res = await axios.post('/api/doctor/slots', newSlot, { headers });
+      const res = await api.post('/api/doctor/slots', newSlot, { headers });
       setSlots(res.data.available_slots);
       setNewSlot({ date: '', time: '' });
       setSelectedDate('');
@@ -201,7 +201,7 @@ const DoctorDashboard = () => {
 
   const handleDeleteSlot = async (date, time) => {
     try {
-      const res = await axios.delete('/api/doctor/slots', {
+      const res = await api.delete('/api/doctor/slots', {
         headers,
         data: { date, time },
       });
@@ -218,7 +218,7 @@ const DoctorDashboard = () => {
       }
 
       // include selected tests in the prescription request so backend creates TestReport
-      await axios.post(
+      await api.post(
         '/api/doctor/prescribe',
         {
           appointment_id: appointmentId,
@@ -254,7 +254,7 @@ const DoctorDashboard = () => {
 
   const fetchTreatedPatients = async () => {
     try {
-      const res = await axios.get('/api/doctor/treated-patients', { headers });
+      const res = await api.get('/api/doctor/treated-patients', { headers });
       setTreatedPatients(res.data.patients || []);
     } catch (err) {
       console.error('Failed to load treated patients:', err);
@@ -263,7 +263,7 @@ const DoctorDashboard = () => {
 
   const fetchPatientHistory = async (patientId) => {
     try {
-      const res = await axios.get(`/api/doctor/patient-history/${patientId}`, {
+      const res = await api.get(`/api/doctor/patient-history/${patientId}`, {
         headers,
       });
       setPatientHistory(res.data.appointments || []);

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../api/api';
 import { useNavigate } from 'react-router-dom';
 
 const Signup = () => {
@@ -35,7 +35,7 @@ const Signup = () => {
     }
 
     try {
-      const res = await axios.post('/api/users/register', formData);
+      const res = await api.post('/api/users/register', formData);
       localStorage.setItem('token', res.data.token);
       window.dispatchEvent(new Event('authChange'));
       navigate('/account');

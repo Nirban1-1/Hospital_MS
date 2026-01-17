@@ -1,6 +1,6 @@
 // client/src/components/Chatbot/Chatbot.jsx
 import { useState, useRef, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api/api';
 import { AiOutlineSend, AiOutlineClose, AiOutlineRobot, AiOutlineUser } from 'react-icons/ai';
 import { BiLoader } from 'react-icons/bi';
 import './Chatbot.css';
@@ -38,7 +38,7 @@ const Chatbot = ({ isOpen, onClose, patientName }) => {
   const initializeChat = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post(
+      const response = await api.post(
         'http://localhost:5000/api/chatbot/chat',
         {
           message: 'Hello',
@@ -89,7 +89,7 @@ const Chatbot = ({ isOpen, onClose, patientName }) => {
       const token = localStorage.getItem('token');
       console.log('Sending chatbot request:', { message: userMessage, token: token ? 'exists' : 'missing' });
       
-      const response = await axios.post(
+      const response = await api.post(
         'http://localhost:5000/api/chatbot/chat',
         {
           message: userMessage,

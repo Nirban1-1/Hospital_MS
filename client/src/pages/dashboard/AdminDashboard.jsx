@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../../api/api';
 
 const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
@@ -28,7 +28,7 @@ const AdminDashboard = () => {
         const allUsers = [];
 
         for (const role of roles) {
-          const res = await axios.get(`/api/admin/users/${role}`, {
+          const res = await api.get(`/api/admin/users/${role}`, {
             headers: { Authorization: `Bearer ${token}` },
           });
           allUsers.push(...res.data);
@@ -47,7 +47,7 @@ const AdminDashboard = () => {
 
   const handleVerify = async (id) => {
     try {
-      await axios.patch(
+      await api.patch(
         `/api/admin/verify/${id}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
@@ -64,7 +64,7 @@ const AdminDashboard = () => {
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`/api/admin/user/${id}`, {
+      await api.delete(`/api/admin/user/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -96,7 +96,7 @@ const AdminDashboard = () => {
     setScheduleError('');
 
     try {
-      const res = await axios.get('/api/admin/staff-schedule', {
+      const res = await api.get('/api/admin/staff-schedule', {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -125,7 +125,7 @@ const AdminDashboard = () => {
     setScheduleSuccess('');
 
     try {
-      await axios.post(
+      await api.post(
         '/api/admin/staff-schedule',
         {
           staff_id: selectedStaff,
@@ -152,7 +152,7 @@ const AdminDashboard = () => {
       setScheduleError('');
       setScheduleSuccess('');
 
-      await axios.delete(`/api/admin/staff-schedule/${scheduleId}`, {
+      await api.delete(`/api/admin/staff-schedule/${scheduleId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

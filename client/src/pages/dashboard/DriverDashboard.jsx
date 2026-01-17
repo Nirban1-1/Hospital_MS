@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../../api/api';
 
 const DriverDashboard = () => {
   const [pendingRequests, setPendingRequests] = useState([]);
@@ -15,7 +15,7 @@ const DriverDashboard = () => {
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
-        const res = await axios.get('/api/driver/dashboard', { headers });
+        const res = await api.get('/api/driver/dashboard', { headers });
         setPendingRequests(res.data.pending_requests);
         setAssignedRequests(res.data.assigned_requests);
         setCompletedCount(res.data.completed_requests);
@@ -31,7 +31,7 @@ const DriverDashboard = () => {
 
   const handleAccept = async (id) => {
     try {
-      await axios.patch(`/api/driver/accept/${id}`, {}, { headers });
+      await api.patch(`/api/driver/accept/${id}`, {}, { headers });
       window.location.reload();
     } catch (err) {
       console.error('Failed to accept request:', err);
@@ -40,7 +40,7 @@ const DriverDashboard = () => {
 
   const handleComplete = async (id) => {
     try {
-      await axios.patch(`/api/driver/complete/${id}`, {}, { headers });
+      await api.patch(`/api/driver/complete/${id}`, {}, { headers });
       window.location.reload();
     } catch (err) {
       console.error('Failed to complete request:', err);

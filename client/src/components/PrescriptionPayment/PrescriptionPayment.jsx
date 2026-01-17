@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api/api';
 
 const PrescriptionPayment = ({ appointmentId }) => {
   const token = localStorage.getItem('token');
@@ -19,7 +19,7 @@ const PrescriptionPayment = ({ appointmentId }) => {
   const fetchPrescriptions = async () => {
     try {
       setLoading(true);
-      const res = await axios.get('/api/payment/my-prescriptions', { headers });
+      const res = await api.get('/api/payment/my-prescriptions', { headers });
       let allPrescriptions = res.data.prescriptions || [];
       
       // Filter by appointmentId if provided
@@ -54,7 +54,7 @@ const PrescriptionPayment = ({ appointmentId }) => {
 
     try {
       setProcessing(true);
-      const res = await axios.post('/api/payment/process', {
+      const res = await api.post('/api/payment/process', {
         prescription_id: selectedPrescription._id,
         payment_method: paymentMethod
       }, { headers });

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import axios from "axios";
+import api from "../../api/api";
 
 const WardboyDashboard = () => {
   const token = localStorage.getItem("token");
@@ -26,10 +26,10 @@ const WardboyDashboard = () => {
         setLoading(true);
         setError("");
 
-        const profileRes = await axios.get("/api/users/profile", { headers });
+        const profileRes = await api.get("/api/users/profile", { headers });
         setProfile(profileRes.data);
 
-        const scheduleRes = await axios.get("/api/staff/my-schedule", { headers });
+        const scheduleRes = await api.get("/api/staff/my-schedule", { headers });
         setSchedules(scheduleRes.data || []);
       } catch (err) {
         setError(err?.response?.data?.message || err.message || "Failed to load.");

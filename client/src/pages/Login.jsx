@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import axios from "axios";
+import api from "../api/api";
 import { useNavigate } from "react-router-dom";
 
 const Login = () => {
@@ -35,7 +35,7 @@ const Login = () => {
     setError("");
 
     try {
-      const res = await axios.post("/api/users/login", formData);
+      const res = await api.post("/api/users/login", formData);
 
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));

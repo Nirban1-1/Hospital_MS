@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import axios from "axios";
+import api from "../../api/api";
 
 const ReceptionistDashboard = () => {
   const [activeTab, setActiveTab] = useState("cabin"); // 'cabin' | 'icu' | 'ot'
@@ -26,7 +26,7 @@ const ReceptionistDashboard = () => {
   const fetchBeds = async () => {
     setLoadingBeds(true);
     try {
-      const res = await axios.get(`/api/reception/beds?type=${activeTab}`, { headers });
+      const res = await api.get(`/api/reception/beds?type=${activeTab}`, { headers });
       setBeds((prev) => ({ ...prev, [activeTab]: res.data }));
     } catch (err) {
       console.error("Failed to load beds:", err);
@@ -60,10 +60,10 @@ const ReceptionistDashboard = () => {
         setLoadingSchedule(true);
         setScheduleError("");
 
-        const profileRes = await axios.get("/api/users/profile", { headers });
+        const profileRes = await api.get("/api/users/profile", { headers });
         setProfile(profileRes.data);
 
-        const scheduleRes = await axios.get("/api/staff/my-schedule", { headers });
+        const scheduleRes = await api.get("/api/staff/my-schedule", { headers });
         setSchedules(scheduleRes.data || []);
       } catch (err) {
         setScheduleError(err?.response?.data?.message || err.message || "Failed to load.");
@@ -102,7 +102,7 @@ const ReceptionistDashboard = () => {
     setPatientInfo(null);
     setBookingError("");
     try {
-      const res = await axios.get("/api/reception/patient-lookup", {
+      const res = await api.get("/api/reception/patient-lookup", {
         params: { query: patientQuery },
         headers,
       });
@@ -124,7 +124,7 @@ const ReceptionistDashboard = () => {
     setBookingError("");
     setBookingSuccess("");
     try {
-      await axios.post(
+      await api.post(
         "/api/reception/reservations",
         {
           bed_id: selectedBed._id,
@@ -149,7 +149,7 @@ const ReceptionistDashboard = () => {
   // Checkout reservation (existing)
   const handleCheckout = async (reservationId) => {
     try {
-      await axios.post(`/api/reception/reservations/${reservationId}/checkout`, {}, { headers });
+      await api.post(`/api/reception/reservations/${reservationId}/checkout`, {}, { headers });
       fetchBeds();
     } catch (err) {
       console.error("Checkout failed:", err);

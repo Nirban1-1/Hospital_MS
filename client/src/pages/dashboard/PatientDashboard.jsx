@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../api/api';
 import { useNavigate } from 'react-router-dom';
 import Chatbot from '../../components/Chatbot/Chatbot';
 
@@ -40,12 +40,12 @@ const PatientDashboard = () => {
   const [patientName, setPatientName] = useState('');
 
   useEffect(() => {
-    axios.get('/api/appointment/specialties', { headers }).then(res => setSpecialties(res.data));
-    axios.get('/api/ambulance/my-requests', { headers }).then(res => setAmbulanceRequests(res.data));
-    axios.get('/api/appointment/my', { headers }).then(res => setAppointments(res.data));
+    api.get('/api/appointment/specialties', { headers }).then(res => setSpecialties(res.data));
+    api.get('/api/ambulance/my-requests', { headers }).then(res => setAmbulanceRequests(res.data));
+    api.get('/api/appointment/my', { headers }).then(res => setAppointments(res.data));
 
     // Fetch patient profile (name/email/phone) + name for chatbot
-    axios.get('/api/users/profile', { headers })
+    api.get('/api/users/profile', { headers })
       .then(res => {
         setPatientName(res.data.name);
         setPatientProfile({
@@ -58,14 +58,14 @@ const PatientDashboard = () => {
   }, []);
 
   useEffect(() => {
-    axios.get('/api/blood/mine', { headers }).then(res => {
+    api.get('/api/blood/mine', { headers }).then(res => {
       setBloodRequests(res.data);
     });
   }, []);
 
   const fetchDoctors = async () => {
     if (!selectedSpecialty) return;
-    const res = await axios.get(`/api/appointment/doctors/${selectedSpecialty}`, { headers });
+    const res = await api.get(`/api/appointment/doctors/${selectedSpecialty}`, { headers });
     setDoctors(res.data);
     setAvailableSlots([]);
     setSelectedDoctor(null);
@@ -96,7 +96,7 @@ const PatientDashboard = () => {
   const handleDateSelect = async (dateString) => {
     setSelectedDate(dateString);
     try {
-      const res = await axios.get(`/api/appointment/doctor/${selectedDoctor}/slots/${dateString}`, { headers });
+      const res = await api.get(`/api/appointment/doctor/${selectedDoctor}/slots/${dateString}`, { headers });
       setAvailableSlots(res.data);
     } catch (err) {
       console.error('Failed to fetch slots:', err);
@@ -106,7 +106,7 @@ const PatientDashboard = () => {
 
   const bookAppointment = async (slot) => {
     try {
-      await axios.post('/api/appointment/book', {
+      await api.post('/api/appointment/book', {
         doctor_id: selectedDoctor,
         date: slot.date,
         time: slot.time
@@ -119,7 +119,7 @@ const PatientDashboard = () => {
       setSelectedSpecialty('');
       setSelectedDoctor(null);
       setSelectedDate('');
-      const updated = await axios.get('/api/appointment/my', { headers });
+      const updated = await api.get('/api/appointment/my', { headers });
       setAppointments(updated.data);
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to book appointment.');
@@ -128,9 +128,9 @@ const PatientDashboard = () => {
 
   const cancelAppointment = async (appointmentId) => {
     try {
-      await axios.put(`/api/appointment/${appointmentId}/cancel`, {}, { headers });
+      await api.put(`/api/appointment/${appointmentId}/cancel`, {}, { headers });
       alert('Appointment cancelled successfully.');
-      const updated = await axios.get('/api/appointment/my', { headers });
+      const updated = await api.get('/api/appointment/my', { headers });
       setAppointments(updated.data);
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to cancel appointment.');
@@ -142,7 +142,7 @@ const PatientDashboard = () => {
   };
 
   const requestAmbulance = async () => {
-    await axios.post('/api/ambulance/request', { pickup_location: pickupLocation }, { headers });
+    await api.post('/api/ambulance/request', { pickup_location: pickupLocation }, { headers });
     alert('Ambulance requested.');
   };
 
@@ -158,7 +158,7 @@ const PatientDashboard = () => {
         return;
       }
 
-      await axios.post('/api/blood/request', {
+      await api.post('/api/blood/request', {
         blood_group: bloodGroup,
         age: Number(age),
         gender,
@@ -175,7 +175,7 @@ const PatientDashboard = () => {
       setNote('');
       setRequestMessage('');
 
-      const updated = await axios.get('/api/blood/mine', { headers });
+      const updated = await api.get('/api/blood/mine', { headers });
       setBloodRequests(updated.data);
     } catch (err) {
       console.error('Failed to request blood:', err);

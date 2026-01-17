@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../api/api';
 import { useNavigate } from 'react-router-dom';
 
 const ForgotPassword = () => {
@@ -28,7 +28,7 @@ const ForgotPassword = () => {
     setSuccess('');
 
     try {
-      const res = await axios.post('/api/users/verify-user', {
+      const res = await api.post('/api/users/verify-user', {
         email: formData.email,
         phone: formData.phone,
         name: formData.name
@@ -48,7 +48,7 @@ const ForgotPassword = () => {
     setSuccess('');
 
     try {
-      const res = await axios.post('/api/users/reset-password', {
+      const res = await api.post('/api/users/reset-password', {
         email: formData.email,
         newPassword: formData.newPassword
       });

@@ -182,7 +182,7 @@ const Header = () => {
                     window.dispatchEvent(new Event('authChange'));
                     navigate('/');
                   }}
-                  className="w-full bg-primaryColor text-white py-2 rounded-md font-[600]"
+                  className="w-full bg-gray-100 text-primaryColor py-2 rounded-md font-[600] hover:bg-gray-200"
                 >
                   Logout
                 </button>
@@ -193,7 +193,7 @@ const Header = () => {
                       setMenuOpen(false);
                       navigate('/login');
                     }}
-                    className="w-full border-2 border-primaryColor text-primaryColor py-2 rounded-md font-[600]"
+                    className="w-full bg-gray-100 text-primaryColor py-2 rounded-md font-[600] hover:bg-gray-200"
                   >
                     Login
                   </button>
@@ -202,7 +202,7 @@ const Header = () => {
                       setMenuOpen(false);
                       navigate('/signup');
                     }}
-                    className="w-full bg-primaryColor text-white py-2 rounded-md font-[600]"
+                    className="w-full bg-primaryColor/10 text-primaryColor py-2 rounded-md font-[600] hover:bg-primaryColor/20"
                   >
                     Sign Up
                   </button>

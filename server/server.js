@@ -41,7 +41,6 @@ app.use(express.urlencoded({ extended: true }));
 const allowedOrigins = new Set([
   "http://localhost:5173",
   "https://hmsystem-1ioymxqfi-nirban1-1s-projects.vercel.app",
-  "https://hmsystem-opal.vercel.app",
 ]);
 
 const corsOptions = {
@@ -60,7 +59,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options("/*", cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 
 // Optional: request logger (helps debugging)
 app.use((req, res, next) => {
@@ -101,12 +100,14 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   const origin = req.headers.origin;
 
+  
   // If the request is from an allowed origin (or has no origin), include CORS headers on errors too
-  if (!origin || allowedOrigins.has(origin)) {
-    res.header("Access-Control-Allow-Origin", origin || "/*");
-    res.header("Access-Control-Allow-Credentials", "true");
-    res.header("Vary", "Origin");
-  }
+  if (origin && allowedOrigins.has(origin)) {
+  res.header("Access-Control-Allow-Origin", origin);
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.header("Vary", "Origin");
+}
+
 
   console.error(`[ERROR] ${err.message}`);
   console.error(err.stack);

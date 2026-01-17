@@ -17,6 +17,7 @@ import ReceptionistDashboard from './pages/dashboard/ReceptionistDashboard';
 import NurseDashboard from './pages/dashboard/NurseDashboard';          
 import WardboyDashboard from './pages/dashboard/WardboyDashboard'; 
 import ProtectedRoute from './components/ProtectedRoute';
+import "./api/axiosConfig";
 
 function App() {
   return (

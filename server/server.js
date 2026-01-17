@@ -40,6 +40,7 @@ app.use(express.urlencoded({ extended: true }));
  */
 const allowedOrigins = new Set([
   "http://localhost:5173",
+  "https://hmsystem-1ioymxqfi-nirban1-1s-projects.vercel.app",
   "https://hmsystem-opal.vercel.app",
 ]);
 

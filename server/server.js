@@ -103,7 +103,7 @@ app.use((err, req, res, next) => {
 
   // If the request is from an allowed origin (or has no origin), include CORS headers on errors too
   if (!origin || allowedOrigins.has(origin)) {
-    res.header("Access-Control-Allow-Origin", origin || "*");
+    res.header("Access-Control-Allow-Origin", origin || "/*");
     res.header("Access-Control-Allow-Credentials", "true");
     res.header("Vary", "Origin");
   }

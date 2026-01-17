@@ -57,23 +57,17 @@ const Header = () => {
   /* ================= ROUTES ================= */
   const getDashboardPathByRole = () => {
     switch (role) {
-      case 'patient':
-        return '/dashboard/patient';
-      case 'doctor':
-        return '/dashboard/doctor';
-      case 'donor':
-        return '/dashboard/donor';
-      case 'ambulance_driver':
-        return '/dashboard/driver';
+      case 'patient': return '/dashboard/patient';
+      case 'doctor': return '/dashboard/doctor';
+      case 'donor': return '/dashboard/donor';
+      case 'ambulance_driver': return '/dashboard/driver';
       case 'staff':
         if (staffCategory === 'receptionist') return '/dashboard/receptionist';
         if (staffCategory === 'nurse') return '/dashboard/nurse';
         if (staffCategory === 'ward_boy') return '/dashboard/wardboy';
         return '/dashboard/receptionist';
-      case 'admin':
-        return '/admin-dashboard';
-      default:
-        return null;
+      case 'admin': return '/admin-dashboard';
+      default: return null;
     }
   };
 
@@ -88,27 +82,26 @@ const Header = () => {
       ]
     : [{ path: '/home', display: 'Home' }];
 
-  /* ================= UI ================= */
   return (
-    <header ref={headerRef} className="header bg-white shadow-sm">
+    <header ref={headerRef} className="bg-white shadow-sm">
       <div className="container">
-        <div className="flex items-center justify-between h-[80px]">
+        <div className="flex items-center justify-between h-[72px]">
 
           {/* Logo */}
           <Link to="/" onClick={() => setMenuOpen(false)}>
-            <img src={logo} alt="Logo" className="h-10" />
+            <img src={logo} alt="Logo" className="h-9" />
           </Link>
 
           {/* Desktop Menu */}
-          <ul className="hidden md:flex items-center gap-10">
+          <ul className="hidden md:flex items-center gap-8">
             {navLinks.map((link, index) => (
               <li key={index}>
                 <NavLink
                   to={link.path}
                   className={({ isActive }) =>
                     isActive
-                      ? 'text-primaryColor font-[600]'
-                      : 'text-textColor font-[500] hover:text-primaryColor'
+                      ? 'text-primaryColor font-semibold'
+                      : 'text-gray-700 font-medium hover:text-primaryColor'
                   }
                 >
                   {link.display}
@@ -117,33 +110,33 @@ const Header = () => {
             ))}
           </ul>
 
-          {/* Right Buttons (Desktop) */}
-          <div className="hidden md:flex items-center gap-4">
+          {/* Desktop Auth Buttons */}
+          <div className="hidden md:flex items-center gap-6">
             {isAuthenticated ? (
               <button
                 onClick={() => {
                   localStorage.clear();
-                  setIsAuthenticated(false);
-                  setRole(null);
-                  setStaffCategory(null);
                   window.dispatchEvent(new Event('authChange'));
                   navigate('/');
                 }}
-                className="bg-primaryColor text-white px-6 py-2 rounded-full font-[600]"
+                className="text-sm font-semibold text-red-500 hover:underline"
               >
                 Logout
               </button>
             ) : (
               <>
+                {/* Login = text button */}
                 <button
                   onClick={() => navigate('/login')}
-                  className="border-2 border-primaryColor text-primaryColor px-6 py-2 rounded-full font-[600]"
+                  className="text-sm font-semibold text-primaryColor hover:underline"
                 >
                   Login
                 </button>
+
+                {/* Sign up = small clean button */}
                 <button
                   onClick={() => navigate('/signup')}
-                  className="bg-primaryColor text-white px-6 py-2 rounded-full font-[600]"
+                  className="bg-primaryColor text-white text-sm px-4 py-1.5 rounded-md font-semibold hover:opacity-90"
                 >
                   Sign Up
                 </button>
@@ -151,7 +144,7 @@ const Header = () => {
             )}
           </div>
 
-          {/* Mobile Menu Button */}
+          {/* Mobile Menu Icon */}
           <button
             className="md:hidden text-2xl"
             onClick={() => setMenuOpen(!menuOpen)}
@@ -170,18 +163,14 @@ const Header = () => {
                 <NavLink
                   to={link.path}
                   onClick={() => setMenuOpen(false)}
-                  className={({ isActive }) =>
-                    isActive
-                      ? 'text-primaryColor font-[600]'
-                      : 'text-textColor font-[500]'
-                  }
+                  className="text-gray-700 font-medium"
                 >
                   {link.display}
                 </NavLink>
               </li>
             ))}
 
-            <div className="pt-4 border-t">
+            <div className="pt-4 border-t flex flex-col gap-3">
               {isAuthenticated ? (
                 <button
                   onClick={() => {
@@ -190,31 +179,32 @@ const Header = () => {
                     window.dispatchEvent(new Event('authChange'));
                     navigate('/');
                   }}
-                  className="w-full bg-primaryColor text-white py-2 rounded-full font-[600]"
+                  className="text-red-500 font-semibold text-left"
                 >
                   Logout
                 </button>
               ) : (
-                <div className="flex flex-col gap-3">
+                <>
                   <button
                     onClick={() => {
                       setMenuOpen(false);
                       navigate('/login');
                     }}
-                    className="w-full border-2 border-primaryColor text-primaryColor py-2 rounded-full font-[600]"
+                    className="text-primaryColor font-semibold text-left"
                   >
                     Login
                   </button>
+
                   <button
                     onClick={() => {
                       setMenuOpen(false);
                       navigate('/signup');
                     }}
-                    className="w-full bg-primaryColor text-white py-2 rounded-full font-[600]"
+                    className="bg-primaryColor/10 text-primaryColor py-2 rounded-md font-semibold"
                   >
                     Sign Up
                   </button>
-                </div>
+                </>
               )}
             </div>
           </ul>

@@ -1,3 +1,4 @@
+// server.js
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
@@ -31,40 +32,40 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// CORS Configuration
-const allowedOrigins = [
-  "http://localhost:5173",       // Vite dev
-  "http://localhost:3000",       // CRA fallback
-  "https://h-msystem-mern.vercel.app" // production
-];
+/**
+ * CORS (Render backend) - allow your Vercel frontend + localhost dev
+ * Important:
+ * - Use a Set + .has()
+ * - Use the SAME cors options for both app.use(cors(...)) and app.options(...)
+ */
+const allowedOrigins = new Set([
+  "http://localhost:5173",
+  "https://hmsystem-opal.vercel.app",
+]);
 
-// ✅ Step 1: Basic CORS middleware
-app.use(cors({
-  origin: allowedOrigins,
+const corsOptions = {
+  origin: (origin, callback) => {
+    // allow requests with no origin (Postman, curl, Render health checks)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.has(origin)) return callback(null, true);
+
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
-  optionsSuccessStatus: 200
-}));
+  optionsSuccessStatus: 200,
+};
 
-// ✅ Step 2: Explicit preflight handler (BEFORE routes)
-app.options(/.*/, (req, res) => {
-  const origin = req.headers.origin;
-  
-  if (allowedOrigins.includes(origin) || !origin) {
-    res.header("Access-Control-Allow-Origin", origin || "*");
-    res.header("Access-Control-Allow-Credentials", "true");
-    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
-    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    res.header("Access-Control-Max-Age", "86400"); // 24 hours
-  }
-  
-  res.sendStatus(200);
-});
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 
-// ✅ Step 3: Debug middleware - log all requests
+// Optional: request logger (helps debugging)
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} - Origin: ${req.headers.origin}`);
+  console.log(
+    `[${new Date().toISOString()}] ${req.method} ${req.path} - Origin: ${req.headers.origin}`
+  );
   next();
 });
 
@@ -95,26 +96,27 @@ app.use((req, res) => {
   res.status(404).json({ error: "Route not found" });
 });
 
-// ✅ Step 4: Global error handler (sends CORS headers even on error)
+// Global error handler (keep it last)
 app.use((err, req, res, next) => {
   const origin = req.headers.origin;
-  
-  // Send CORS headers even if there's an error
-  if (allowedOrigins.includes(origin) || !origin) {
+
+  // If the request is from an allowed origin (or has no origin), include CORS headers on errors too
+  if (!origin || allowedOrigins.has(origin)) {
     res.header("Access-Control-Allow-Origin", origin || "*");
     res.header("Access-Control-Allow-Credentials", "true");
+    res.header("Vary", "Origin");
   }
-  
+
   console.error(`[ERROR] ${err.message}`);
   console.error(err.stack);
-  
+
   res.status(err.status || 500).json({
     error: err.message || "Server error",
-    ...(process.env.NODE_ENV === "development" && { stack: err.stack })
+    ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
   });
 });
 
-// Listen
+// Listen (Render uses PORT; Vercel serverless uses export default app)
 if (!process.env.VERCEL) {
   const PORT = process.env.PORT || 5000;
   app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));

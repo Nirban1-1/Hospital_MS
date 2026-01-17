@@ -40,7 +40,7 @@ app.use(express.urlencoded({ extended: true }));
  */
 const allowedOrigins = new Set([
   "http://localhost:5173",
-  "https://hmsystem-1ioymxqfi-nirban1-1s-projects.vercel.app",
+  "https://hmsystem-git-main-nirban1-1s-projects.vercel.app",
 ]);
 
 const corsOptions = {
@@ -100,7 +100,7 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   const origin = req.headers.origin;
 
-  
+
   // If the request is from an allowed origin (or has no origin), include CORS headers on errors too
   if (origin && allowedOrigins.has(origin)) {
   res.header("Access-Control-Allow-Origin", origin);

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../api/api';
 import { useNavigate } from 'react-router-dom';
-import Chatbot from '../../components/Chatbot/Chatbot';
 
 const PatientDashboard = () => {
   const navigate = useNavigate();
@@ -16,8 +15,7 @@ const PatientDashboard = () => {
   const [availableDates, setAvailableDates] = useState([]);
   const [availableSlots, setAvailableSlots] = useState([]);
   const [appointments, setAppointments] = useState([]);
-  const [pickupLocation, setPickupLocation] = useState('');
-  const [ambulanceRequests, setAmbulanceRequests] = useState([]);
+
 
   // required fields (fetched from profile, not typed)
   const [patientProfile, setPatientProfile] = useState({
@@ -33,17 +31,11 @@ const PatientDashboard = () => {
   const [note, setNote] = useState('');
 
   // keep existing states untouched
-  const [matchedDonors, setMatchedDonors] = useState([]);
-  const [requestMessage, setRequestMessage] = useState('');
-  const [bloodRequests, setBloodRequests] = useState([]);
-  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
   const [patientName, setPatientName] = useState('');
 
   useEffect(() => {
     api.get('/api/appointment/specialties', { headers }).then(res => setSpecialties(res.data));
-    api.get('/api/ambulance/my-requests', { headers }).then(res => setAmbulanceRequests(res.data));
     api.get('/api/appointment/my', { headers }).then(res => setAppointments(res.data));
-
     api.get('/api/users/profile', { headers })
       .then(res => {
         setPatientName(res.data.name);
@@ -57,12 +49,6 @@ const PatientDashboard = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    api.get('/api/blood/mine', { headers }).then(res => {
-      setBloodRequests(res.data);
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const fetchDoctors = async () => {
     if (!selectedSpecialty) return;
@@ -143,45 +129,8 @@ const PatientDashboard = () => {
     navigate('/prescriptions', { state: { appointmentId } });
   };
 
-  const requestAmbulance = async () => {
-    await api.post('/api/ambulance/request', { pickup_location: pickupLocation }, { headers });
-    alert('Ambulance requested.');
-  };
 
-  const requestBlood = async () => {
-    try {
-      if (!patientProfile.name || !patientProfile.email || !patientProfile.phone) {
-        setRequestMessage('Please update your profile (name, email, phone) first.');
-        return;
-      }
-      if (!bloodGroup || !age || !gender) {
-        setRequestMessage('Blood group, age, and gender are required.');
-        return;
-      }
 
-      await api.post('/api/blood/request', {
-        blood_group: bloodGroup,
-        age: Number(age),
-        gender,
-        note
-      }, { headers });
-
-      alert('Blood request sent successfully.');
-      setMatchedDonors([]);
-
-      setBloodGroup('');
-      setAge('');
-      setGender('');
-      setNote('');
-      setRequestMessage('');
-
-      const updated = await api.get('/api/blood/mine', { headers });
-      setBloodRequests(updated.data);
-    } catch (err) {
-      console.error('Failed to request blood:', err);
-      setRequestMessage(err.response?.data?.message || 'Failed to send blood request.');
-    }
-  };
 
   // Convert 24-hour time to 12-hour format with AM/PM
   const formatTime = (time) => {
@@ -462,225 +411,7 @@ const PatientDashboard = () => {
             </div>
           </div>
         )}
-
-        {/* Ambulance */}
-        <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 border border-gray-100">
-          <div className="flex items-start sm:items-center gap-3 mb-5 sm:mb-6">
-            <div className="shrink-0 w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center">
-              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
-            </div>
-            <div className="min-w-0">
-              <h3 className="text-lg sm:text-2xl font-bold text-headingColor">Request an Ambulance</h3>
-              <p className="text-xs sm:text-sm text-textColor">Emergency medical transport</p>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-3">
-            <input
-              type="text"
-              placeholder="Pickup Location"
-              className="w-full sm:flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all"
-              value={pickupLocation}
-              onChange={(e) => setPickupLocation(e.target.value)}
-            />
-            <button
-              onClick={requestAmbulance}
-              className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all duration-300"
-            >
-              Request Ambulance
-            </button>
-          </div>
-        </div>
-
-        {ambulanceRequests.length > 0 && (
-          <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 border border-gray-100">
-            <h3 className="text-lg sm:text-xl font-bold text-headingColor mb-4">Your Ambulance Requests</h3>
-            <div className="space-y-3">
-              {ambulanceRequests.map((req) => (
-                <div key={req._id} className="border-2 border-gray-200 p-4 rounded-xl">
-                  <div className="flex justify-between items-start gap-3">
-                    <div className="min-w-0">
-                      <p className="font-semibold text-headingColor break-words">
-                        Pickup: {req.pickup_location}
-                      </p>
-                      <p className="text-xs sm:text-sm text-textColor">
-                        Requested: {new Date(req.requested_at).toLocaleString()}
-                      </p>
-                    </div>
-
-                    <span className={`shrink-0 px-3 py-1 rounded-full text-xs font-semibold ${
-                      req.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                      req.status === 'accepted' ? 'bg-green-100 text-green-700' :
-                      'bg-gray-100 text-gray-700'
-                    }`}>
-                      {req.status}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Blood Request */}
-        <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 border border-gray-100">
-          <div className="flex items-start sm:items-center gap-3 mb-5 sm:mb-6">
-            <div className="shrink-0 w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center">
-              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
-            </div>
-            <div className="min-w-0">
-              <h3 className="text-lg sm:text-2xl font-bold text-headingColor">Request Blood</h3>
-              <p className="text-xs sm:text-sm text-textColor">Find blood donors near you</p>
-            </div>
-          </div>
-
-          {/* fetched required fields (read-only) */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-            <input
-              type="text"
-              placeholder="Name"
-              className="px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-50 w-full"
-              value={patientProfile.name}
-              disabled
-            />
-            <input
-              type="text"
-              placeholder="Email"
-              className="px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-50 w-full"
-              value={patientProfile.email}
-              disabled
-            />
-            <input
-              type="text"
-              placeholder="Phone"
-              className="px-4 py-3 border-2 border-gray-200 rounded-xl bg-gray-50 w-full"
-              value={patientProfile.phone}
-              disabled
-            />
-          </div>
-
-          {/* inputs */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <input
-              type="text"
-              placeholder="Blood Group (e.g. A+)"
-              className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 outline-none transition-all w-full"
-              value={bloodGroup}
-              onChange={(e) => setBloodGroup(e.target.value)}
-            />
-
-            <input
-              type="number"
-              placeholder="Age"
-              className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 outline-none transition-all w-full"
-              value={age}
-              onChange={(e) => setAge(e.target.value)}
-            />
-
-            <select
-              className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 outline-none transition-all bg-white w-full"
-              value={gender}
-              onChange={(e) => setGender(e.target.value)}
-            >
-              <option value="">Select Gender</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-              <option value="other">Other</option>
-            </select>
-
-            <button
-              onClick={requestBlood}
-              className="w-full px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all duration-300"
-            >
-              Send Request
-            </button>
-          </div>
-
-          <textarea
-            placeholder="Note (optional)"
-            className="mt-3 w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 outline-none transition-all"
-            rows={3}
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-          />
-
-          {requestMessage && <p className="text-red-600 mt-3 text-sm">{requestMessage}</p>}
-        </div>
-
-        {/* Blood Request Status */}
-        {bloodRequests.length > 0 && (
-          <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 border border-gray-100">
-            <h3 className="text-lg sm:text-xl font-bold text-headingColor mb-4">Your Blood Requests</h3>
-            <div className="space-y-4">
-              {bloodRequests.map((req) => (
-                <div key={req._id || req.id} className="border-2 border-gray-200 p-4 rounded-xl">
-                  <div className="flex justify-between items-start gap-3 mb-3">
-                    <div className="min-w-0">
-                      <p className="font-semibold text-headingColor break-words">
-                        Blood Group: {req.blood_group || req.blood_type}
-                      </p>
-                      <p className="text-xs sm:text-sm text-textColor">Age: {req.age}</p>
-                      <p className="text-xs sm:text-sm text-textColor">Gender: {req.gender}</p>
-                      {req.note ? <p className="text-xs sm:text-sm text-textColor break-words">Note: {req.note}</p> : null}
-                    </div>
-
-                    <span className={`shrink-0 px-3 py-1 rounded-full text-xs font-semibold ${
-                      req.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                      req.status === 'accepted' ? 'bg-green-100 text-green-700' :
-                      'bg-gray-100 text-gray-700'
-                    }`}>
-                      {req.status}
-                    </span>
-                  </div>
-
-                  <p className="text-xs sm:text-sm text-textColor">
-                    Requested: {new Date(req.requested_at).toLocaleString()}
-                  </p>
-
-                  {req.accepted_at && (
-                    <p className="text-xs sm:text-sm text-green-600">
-                      Accepted: {new Date(req.accepted_at).toLocaleString()}
-                    </p>
-                  )}
-
-                  {req.donor && (
-                    <div className="mt-3 pt-3 border-t border-gray-200">
-                      <p className="text-sm font-semibold text-headingColor">Donor Details:</p>
-                      <p className="text-xs sm:text-sm text-textColor break-words">Name: {req.donor.name}</p>
-                      <p className="text-xs sm:text-sm text-textColor break-words">Phone: {req.donor.phone}</p>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
-
-      {/* Floating Chatbot Button */}
-      <button
-        onClick={() => setIsChatbotOpen(true)}
-        className="fixed bottom-4 right-4 sm:bottom-8 sm:right-8 w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-r from-primaryColor to-irisBlueColor text-white rounded-full shadow-2xl transform hover:scale-110 transition-all duration-300 flex items-center justify-center z-50 group"
-        title="Chat with Healthcare Assistant"
-      >
-        <svg className="w-7 h-7 sm:w-8 sm:h-8 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-        </svg>
-        <span className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold animate-pulse">
-          AI
-        </span>
-      </button>
-
-      {/* Chatbot Component */}
-      <Chatbot
-        isOpen={isChatbotOpen}
-        onClose={() => setIsChatbotOpen(false)}
-        patientName={patientName}
-      />
     </div>
   );
 };

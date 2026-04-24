@@ -413,7 +413,7 @@ const DoctorDashboard = () => {
             </div>
           </div>
 
-          {!specialization && isEditingSpecialization ? (
+          {isEditingSpecialization ? (
             <div className="flex flex-col sm:flex-row gap-3">
               <select
                 value={specialization}
@@ -422,15 +422,31 @@ const DoctorDashboard = () => {
               >
                 <option value="">Select specialization</option>
                 {[
-                  'Cardiologist',
-                  'Dermatologist',
-                  'Pediatrician',
-                  'Neurologist',
-                  'Orthopedic',
-                  'Psychiatrist',
-                  'General Physician',
-                  'Gynecologist',
-                  'ENT Specialist',
+                  "Cardiologist",
+  "Pediatrician",
+  "Neurologist",
+  "Gynecologist",
+  "Orthopedic Surgeon",
+  "Dermatologist",
+  "Gastroenterologist",
+  "Ophthalmologist",
+  "Pulmonologist",
+  "Endocrinologist",
+  "Urologist",
+  "Psychiatrist",
+  "Oncologist",
+  "Rheumatologist",
+  "Nephrologist",
+  "Hematologist",
+  "ENT Specialist",
+  "Allergist",
+  "General Surgeon",
+  "Radiologist",
+  "Anesthesiologist",
+  "Pathologist",
+  "Vascular Surgeon",
+  "Diabetologist",
+  "Plastic Surgeon"
                 ].map((spec) => (
                   <option key={spec} value={spec}>
                     {spec}

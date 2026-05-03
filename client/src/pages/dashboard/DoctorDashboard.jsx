@@ -27,6 +27,8 @@ const DoctorDashboard = () => {
   const [treatedPatients, setTreatedPatients] = useState([]);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [patientHistory, setPatientHistory] = useState([]);
+  const [bookedPatientHistory, setBookedPatientHistory] = useState({});
+  const [loadingBookedHistoryId, setLoadingBookedHistoryId] = useState(null);
 
   // Test Prescription States
   const [testQuery, setTestQuery] = useState('');
@@ -273,6 +275,43 @@ const DoctorDashboard = () => {
     }
   };
 
+
+  const handleShowBookedPatientHistory = async (appointment) => {
+    const existingHistory = bookedPatientHistory[appointment._id];
+
+    if (existingHistory?.appointments) {
+      setBookedPatientHistory((prev) => ({
+        ...prev,
+        [appointment._id]: {
+          ...existingHistory,
+          open: !existingHistory.open,
+        },
+      }));
+      return;
+    }
+
+    setLoadingBookedHistoryId(appointment._id);
+
+    try {
+      const res = await api.get(
+        `/api/doctor/patient-history/${appointment.patient_id}`,
+        { headers }
+      );
+
+      setBookedPatientHistory((prev) => ({
+        ...prev,
+        [appointment._id]: {
+          open: true,
+          appointments: res.data.appointments || [],
+        },
+      }));
+    } catch (err) {
+      console.error('Failed to load booked patient history:', err);
+    } finally {
+      setLoadingBookedHistoryId(null);
+    }
+  };
+
   const handleAddMedicine = (medicine) => {
     if (selectedMedicines.find((m) => m.medicine_id === medicine._id)) {
       return alert('Medicine already added');
@@ -357,6 +396,9 @@ const DoctorDashboard = () => {
     .filter((a) => a.status === 'treated')
     .slice()
     .sort(sortAppointmentsByDateTime);
+
+  const hasTreatedHistoryForEmail = (email) =>
+    treatedAppointments.some((appt) => appt.patient_email === email);
 
   // Get current appointment being prescribed
   const currentAppointment = appointments.find((a) => a._id === showFormId);
@@ -732,6 +774,168 @@ const DoctorDashboard = () => {
                                       Write Prescription
                                     </button>
                                   </div>
+
+                                  
+                                  {hasTreatedHistoryForEmail(
+                                    appt.patient_email
+                                  ) && (
+                                    <div className="md:col-span-3 flex flex-col gap-3 border-t border-gray-200 pt-4">
+                                      <div className="flex items-center justify-between gap-3 flex-wrap">
+                                        <div>
+                                          <p className="text-xs text-textColor font-semibold">
+                                            Patient history
+                                          </p>
+                                          <p className="text-sm text-headingColor">
+                                            Previous prescriptions for this patient
+                                          </p>
+                                        </div>
+
+                                        <button
+                                          onClick={() =>
+                                            handleShowBookedPatientHistory(appt)
+                                          }
+                                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg transition-all duration-300 hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+                                          disabled={
+                                            loadingBookedHistoryId === appt._id
+                                          }
+                                        >
+                                          {loadingBookedHistoryId === appt._id
+                                            ? 'Loading...'
+                                            : bookedPatientHistory[appt._id]?.open
+                                            ? 'Hide Patient History'
+                                            : 'Show Patient History'}
+                                        </button>
+                                      </div>
+
+                                      {bookedPatientHistory[appt._id]?.open && (
+                                        <div className="space-y-3 rounded-xl bg-green-50 p-4 border border-green-100">
+                                          {bookedPatientHistory[appt._id].appointments.length > 0 ? (
+                                            bookedPatientHistory[appt._id].appointments.map((historyAppt, idx) => (
+                                              <div
+                                                key={historyAppt._id}
+                                                className="rounded-lg bg-white p-4 border border-green-100"
+                                              >
+                                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+                                                  <p className="font-semibold text-headingColor">
+                                                    Visit {idx + 1}
+                                                  </p>
+                                                  <p className="text-xs text-textColor">
+                                                    {historyAppt.date} at {formatTime(historyAppt.time)}
+                                                  </p>
+                                                </div>
+
+                                                {historyAppt.prescription_id ? (
+                                                  <div className="space-y-3">
+                                                    <div>
+                                                      <p className="text-xs font-semibold text-textColor mb-1">
+                                                        Notes
+                                                      </p>
+                                                      <p className="text-sm text-headingColor bg-gray-50 rounded-lg p-3">
+                                                        {historyAppt.prescription_id.notes || 'No notes provided'}
+                                                      </p>
+                                                    </div>
+
+                                                    <div>
+                                                      <p className="text-xs font-semibold text-textColor mb-2">
+                                                        Prescribed Medicines
+                                                      </p>
+                                                      <div className="space-y-2">
+                                                        {historyAppt.prescription_id.medicines?.length > 0 ? (
+                                                          historyAppt.prescription_id.medicines.map((med, medIdx) => (
+                                                            <div
+                                                              key={medIdx}
+                                                              className="rounded-lg bg-gray-50 p-3"
+                                                            >
+                                                              <p className="font-semibold text-sm text-headingColor">
+                                                                {med.medicine_id?.drugName || 'Medicine'}
+                                                              </p>
+                                                              <div className="flex flex-wrap gap-3 mt-1 text-xs text-textColor">
+                                                                {med.dosage && (
+                                                                  <span>
+                                                                    <strong>Dosage:</strong> {med.dosage}
+                                                                  </span>
+                                                                )}
+                                                                {med.duration && (
+                                                                  <span>
+                                                                    <strong>Duration:</strong> {med.duration}
+                                                                  </span>
+                                                                )}
+                                                              </div>
+                                                            </div>
+                                                          ))
+                                                        ) : (
+                                                          <p className="text-sm text-textColor">
+                                                            No medicines found.
+                                                          </p>
+                                                        )}
+                                                      </div>
+                                                    </div>
+
+                                                  
+                                                    <div>
+                                                      <p className="text-xs font-semibold text-textColor mb-2">
+                                                        Prescribed Tests
+                                                      </p>
+                                                      <div className="space-y-2">
+                                                        {historyAppt.prescription_id.tests?.length > 0 ? (
+                                                          historyAppt.prescription_id.tests.map((test, testIdx) => (
+                                                            <div
+                                                              key={testIdx}
+                                                              className="rounded-lg bg-gray-50 p-3"
+                                                            >
+                                                              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                                                <p className="font-semibold text-sm text-headingColor">
+                                                                  {test.test_name || 'Test'}
+                                                                </p>
+                                                                <span className="inline-flex w-fit px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 capitalize">
+                                                                  {test.status || 'suggested'}
+                                                                </span>
+                                                              </div>
+
+                                                              <div className="mt-2 flex flex-col gap-1 text-xs text-textColor">
+                                                                {test.description && (
+                                                                  <p>
+                                                                    <strong>Description:</strong> {test.description}
+                                                                  </p>
+                                                                )}
+                                                                {test.test_report && (
+                                                                  <p>
+                                                                    <strong>Report:</strong> {test.test_report}
+                                                                  </p>
+                                                                )}
+                                                                {test.report_date && (
+                                                                  <p>
+                                                                    <strong>Report Date:</strong>{' '}
+                                                                    {new Date(test.report_date).toLocaleDateString()}
+                                                                  </p>
+                                                                )}
+                                                              </div>
+                                                            </div>
+                                                          ))
+                                                        ) : (
+                                                          <p className="text-sm text-textColor">
+                                                            No tests were prescribed.
+                                                          </p>
+                                                        )}
+                                                      </div>
+                                                    </div>
+                                                  </div>
+                                                ) : (
+                                                  <p className="text-sm text-textColor">
+                                                    Prescription not available for this visit.
+                                                  </p>
+                                                )}
+                                              </div>
+                                            ))
+                                          ) : (
+                                            <p className="text-sm text-textColor">
+                                              No previous treated appointments found for this patient.
+                                            </p>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </details>

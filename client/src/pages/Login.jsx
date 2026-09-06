@@ -8,9 +8,11 @@ const Login = () => {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
+    otp: "",
   });
 
   const [error, setError] = useState("");
+  const [requiresTwoFactor, setRequiresTwoFactor] = useState(false);
 
   const handleChange = (e) => {
     setFormData((prev) => ({
@@ -61,10 +63,10 @@ const Login = () => {
       } else if (userRole === "donor") {
         navigate("/dashboard/donor");
       } else if (userRole === "ambulancedriver") {
-        // app uses "ambulancedriver" as a role in multiple places [file:146]
+        // The app normalizes the stored ambulance_driver role for routing.
         navigate("/dashboard/driver");
       } else if (userRole === "staff") {
-        // staff categories used in app: receptionist, nurse, wardboy [file:144]
+        // Staff categories are normalized before choosing a dashboard.
         if (staffCategory === "receptionist") {
           navigate("/dashboard/receptionist");
         } else if (staffCategory === "nurse") {
@@ -79,6 +81,9 @@ const Login = () => {
       }
     } catch (err) {
       console.error("Login error:", err?.response?.data || err.message);
+      if (err?.response?.data?.requiresTwoFactor) {
+        setRequiresTwoFactor(true);
+      }
       setError(err?.response?.data?.message || "Login failed");
     }
   };
@@ -176,6 +181,28 @@ const Login = () => {
                   />
                 </div>
               </div>
+
+              {requiresTwoFactor && (
+                <div>
+                  <label className="block text-sm font-semibold text-headingColor mb-2">
+                    Authenticator Code
+                  </label>
+                  <input
+                    type="text"
+                    name="otp"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    pattern="[0-9]{6}"
+                    maxLength={6}
+                    placeholder="6-digit code"
+                    value={formData.otp}
+                    onChange={handleChange}
+                    required
+                    autoFocus
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primaryColor focus:ring-2 focus:ring-primaryColor/20 outline-none transition-all"
+                  />
+                </div>
+              )}
 
               {/* Error Message */}
               {error && (

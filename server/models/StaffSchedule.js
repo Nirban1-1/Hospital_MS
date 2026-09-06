@@ -16,6 +16,8 @@ const staffScheduleSchema = new mongoose.Schema(
       enum: ['morning', 'evening', 'night'],
       required: true,
     },
+    staff_rsa_envelope: { type: String, select: false },
+    staff_key_version: { type: Number, default: 1 },
   },
   { timestamps: true }
 );

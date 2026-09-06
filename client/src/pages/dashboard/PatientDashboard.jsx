@@ -16,6 +16,9 @@ const PatientDashboard = () => {
   const [availableDates, setAvailableDates] = useState([]);
   const [availableSlots, setAvailableSlots] = useState([]);
   const [appointments, setAppointments] = useState([]);
+  const [appointmentError, setAppointmentError] = useState('');
+  const [loadingSpecialties, setLoadingSpecialties] = useState(true);
+  const [loadingDoctors, setLoadingDoctors] = useState(false);
   const [pickupLocation, setPickupLocation] = useState('');
   const [ambulanceRequests, setAmbulanceRequests] = useState([]);
 
@@ -40,7 +43,17 @@ const PatientDashboard = () => {
   const [patientName, setPatientName] = useState('');
 
   useEffect(() => {
-    api.get('/api/appointment/specialties', { headers }).then(res => setSpecialties(res.data));
+    api.get('/api/appointment/specialties', { headers })
+      .then(res => {
+        setSpecialties(Array.isArray(res.data) ? res.data : []);
+        setAppointmentError('');
+      })
+      .catch(err => {
+        console.error('Failed to fetch specializations:', err);
+        setSpecialties([]);
+        setAppointmentError(err.response?.data?.message || 'Could not load doctor specializations. Please sign in again or retry.');
+      })
+      .finally(() => setLoadingSpecialties(false));
     api.get('/api/ambulance/my-requests', { headers }).then(res => setAmbulanceRequests(res.data));
     api.get('/api/appointment/my', { headers }).then(res => setAppointments(res.data));
 
@@ -66,13 +79,30 @@ const PatientDashboard = () => {
 
   const fetchDoctors = async () => {
     if (!selectedSpecialty) return;
-    const res = await api.get(`/api/appointment/doctors/${selectedSpecialty}`, { headers });
-    setDoctors(res.data);
-    setAvailables
-    setAvailableSlots([]);
-    setSelectedDoctor(null);
-    setSelectedDate('');
-    setAvailableDates([]);
+    setLoadingDoctors(true);
+    setAppointmentError('');
+
+    try {
+      const specialty = encodeURIComponent(selectedSpecialty);
+      const res = await api.get(`/api/appointment/doctors/${specialty}`, { headers });
+      const fetchedDoctors = Array.isArray(res.data) ? res.data : [];
+
+      setDoctors(fetchedDoctors);
+      setAvailableSlots([]);
+      setSelectedDoctor(null);
+      setSelectedDate('');
+      setAvailableDates([]);
+
+      if (fetchedDoctors.length === 0) {
+        setAppointmentError('No doctors are currently available for this specialization.');
+      }
+    } catch (err) {
+      console.error('Failed to fetch doctors:', err);
+      setDoctors([]);
+      setAppointmentError(err.response?.data?.message || 'Could not load doctors for this specialization.');
+    } finally {
+      setLoadingDoctors(false);
+    }
   };
 
   const handleDoctorSelect = async (doctorId) => {
@@ -230,13 +260,14 @@ const PatientDashboard = () => {
                 value={selectedSpecialty}
                 onChange={(e) => {
                   setSelectedSpecialty(e.target.value);
+                  setAppointmentError('');
                   setDoctors([]);
                   setAvailableSlots([]);
                   setSelectedDoctor(null);
                 }}
                 className="w-full sm:flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primaryColor focus:ring-2 focus:ring-primaryColor/20 outline-none transition-all bg-white"
               >
-                <option value="">Select a Specialty</option>
+                <option value="">{loadingSpecialties ? 'Loading specializations...' : 'Select a Specialty'}</option>
                 {specialties.map((spec, i) => (
                   <option key={i} value={spec}>{spec}</option>
                 ))}
@@ -244,12 +275,16 @@ const PatientDashboard = () => {
 
               <button
                 onClick={fetchDoctors}
-                disabled={!selectedSpecialty}
+                disabled={!selectedSpecialty || loadingSpecialties || loadingDoctors}
                 className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-primaryColor to-irisBlueColor text-white font-semibold rounded-xl hover:shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Find Doctors
+                {loadingDoctors ? 'Finding...' : 'Find Doctors'}
               </button>
             </div>
+
+            {appointmentError && (
+              <p className="text-sm text-red-600" role="alert">{appointmentError}</p>
+            )}
 
             {/* Doctors */}
             {doctors.length > 0 && (

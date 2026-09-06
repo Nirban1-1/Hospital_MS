@@ -35,6 +35,9 @@ const testReportSchema = new mongoose.Schema(
         },
       },
     ],
+    patient_metadata_rsa_envelope: { type: String, select: false },
+    patient_key_version: { type: Number, default: 1 },
+    crypto_version: { type: String, default: 'proposal-v1' },
   },
   { timestamps: true }
 );

@@ -3,6 +3,10 @@ import api from '../../api/api';
 
 const DoctorDashboard = () => {
   const [specialization, setSpecialization] = useState('');
+  const [savedSpecialization, setSavedSpecialization] = useState('');
+  const [specializationMessage, setSpecializationMessage] = useState('');
+  const [specializationError, setSpecializationError] = useState('');
+  const [isSavingSpecialization, setIsSavingSpecialization] = useState(false);
   const [slots, setSlots] = useState([]);
   const [newSlot, setNewSlot] = useState({ date: '', time: '' });
   const [selectedDate, setSelectedDate] = useState('');
@@ -22,6 +26,7 @@ const DoctorDashboard = () => {
   const [medicineSearch, setMedicineSearch] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [medicineSearchError, setMedicineSearchError] = useState('');
   const [selectedMedicines, setSelectedMedicines] = useState([]);
 
   const [treatedPatients, setTreatedPatients] = useState([]);
@@ -43,7 +48,9 @@ const DoctorDashboard = () => {
     const fetchDoctorData = async () => {
       try {
         const res = await api.get('/api/doctor/dashboard', { headers });
-        setSpecialization(res.data.doctor.specialization || '');
+        const currentSpecialization = res.data.doctor.specialization || '';
+        setSpecialization(currentSpecialization);
+        setSavedSpecialization(currentSpecialization);
         setSlots(res.data.doctor.available_slots || []);
         setAppointments(res.data.appointments || []);
       } catch (err) {
@@ -61,18 +68,23 @@ const DoctorDashboard = () => {
     const searchMedicines = async () => {
       if (!medicineSearch || medicineSearch.length < 1) {
         setSearchResults([]);
+        setMedicineSearchError('');
         return;
       }
       setIsSearching(true);
+      setMedicineSearchError('');
       try {
         const res = await api.get(
-          `/api/medicines/autocomplete?q=${medicineSearch}`,
+          `/api/medicines/autocomplete?q=${encodeURIComponent(medicineSearch.trim())}`,
           { headers }
         );
-        setSearchResults(res.data.medicines || []);
+        setSearchResults(Array.isArray(res.data.medicines) ? res.data.medicines : []);
       } catch (err) {
         console.error('Failed to search medicines:', err);
         setSearchResults([]);
+        setMedicineSearchError(
+          err.response?.data?.message || 'Could not fetch medicines. Please sign in again or retry.'
+        );
       } finally {
         setIsSearching(false);
       }
@@ -115,16 +127,35 @@ const DoctorDashboard = () => {
   }, [activeTab]);
 
   const handleSpecializationUpdate = async () => {
+    const normalizedSpecialization = specialization.trim();
+    if (!normalizedSpecialization) {
+      setSpecializationError('Please select a specialization.');
+      setSpecializationMessage('');
+      return;
+    }
+
+    setIsSavingSpecialization(true);
+    setSpecializationError('');
+    setSpecializationMessage('');
+
     try {
-      await api.put(
+      const res = await api.put(
         '/api/doctor/specialization',
-        { specialization },
+        { specialization: normalizedSpecialization },
         { headers }
       );
-      alert('Specialization updated.');
+      const updatedSpecialization = res.data.specialization || normalizedSpecialization;
+      setSpecialization(updatedSpecialization);
+      setSavedSpecialization(updatedSpecialization);
+      setSpecializationMessage(res.data.message || 'Specialization updated.');
       setIsEditingSpecialization(false);
     } catch (err) {
       console.error('Failed to update specialization:', err);
+      setSpecializationError(
+        err.response?.data?.message || 'Could not update specialization. Please try again.'
+      );
+    } finally {
+      setIsSavingSpecialization(false);
     }
   };
 
@@ -459,7 +490,12 @@ const DoctorDashboard = () => {
             <div className="flex flex-col sm:flex-row gap-3">
               <select
                 value={specialization}
-                onChange={(e) => setSpecialization(e.target.value)}
+                onChange={(e) => {
+                  setSpecialization(e.target.value);
+                  setSpecializationError('');
+                  setSpecializationMessage('');
+                }}
+                disabled={isSavingSpecialization}
                 className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primaryColor focus:ring-2 focus:ring-primaryColor/20 outline-none transition-all bg-white"
               >
                 <option value="">Select specialization</option>
@@ -496,13 +532,21 @@ const DoctorDashboard = () => {
                 ))}
               </select>
               <button
+                type="button"
                 onClick={handleSpecializationUpdate}
+                disabled={!specialization || isSavingSpecialization}
                 className="px-6 py-3 bg-gradient-to-r from-primaryColor to-irisBlueColor text-white font-semibold rounded-xl hover:shadow-lg transition-all duration-300"
               >
-                Save
+                {isSavingSpecialization ? 'Saving...' : 'Save'}
               </button>
               <button
-                onClick={() => setIsEditingSpecialization(false)}
+                type="button"
+                onClick={() => {
+                  setSpecialization(savedSpecialization);
+                  setSpecializationError('');
+                  setIsEditingSpecialization(false);
+                }}
+                disabled={isSavingSpecialization}
                 className="px-6 py-3 bg-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-300 transition-all duration-300"
               >
                 Cancel
@@ -529,17 +573,30 @@ const DoctorDashboard = () => {
                 <div>
                   <p className="text-sm text-textColor">Your Specialization</p>
                   <p className="font-semibold text-headingColor text-lg">
-                    {specialization}
+                    {savedSpecialization || 'Not set'}
                   </p>
                 </div>
               </div>
               <button
-                onClick={() => setIsEditingSpecialization(true)}
+                type="button"
+                onClick={() => {
+                  setSpecialization(savedSpecialization);
+                  setSpecializationError('');
+                  setSpecializationMessage('');
+                  setIsEditingSpecialization(true);
+                }}
                 className="px-4 py-2 bg-white text-primaryColor font-semibold rounded-lg hover:shadow-md transition-all duration-300 border border-primaryColor"
               >
                 Edit
               </button>
             </div>
+          )}
+
+          {specializationError && (
+            <p className="mt-3 text-sm text-red-600" role="alert">{specializationError}</p>
+          )}
+          {specializationMessage && !isEditingSpecialization && (
+            <p className="mt-3 text-sm text-green-600" role="status">{specializationMessage}</p>
           )}
         </div>
 
@@ -1265,8 +1322,17 @@ const DoctorDashboard = () => {
                               </div>
                             )}
 
+                            {medicineSearchError && (
+                              <div className="absolute z-10 w-full mt-2 bg-white border-2 border-red-200 rounded-xl shadow-lg p-4">
+                                <p className="text-sm text-red-600 text-center" role="alert">
+                                  {medicineSearchError}
+                                </p>
+                              </div>
+                            )}
+
                             {medicineSearch &&
                               !isSearching &&
+                              !medicineSearchError &&
                               searchResults.length === 0 && (
                                 <div className="absolute z-10 w-full mt-2 bg-white border-2 border-gray-200 rounded-xl shadow-lg p-4">
                                   <p className="text-sm text-textColor text-center">

@@ -5,13 +5,17 @@ import {
   createReservation,
   checkoutReservation,
 } from '../controllers/receptionController.js';
-import { protect } from '../middleware/authMiddleware.js';
-// Optionally: middleware to ensure role is receptionist/staff
+import {
+  protect,
+  requireStaffCategory,
+  requireRole,
+  requireVerified
+} from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 // All routes should be protected; adjust role checks as needed
-router.use(protect);
+router.use(protect, requireVerified, requireRole('staff'), requireStaffCategory('receptionist'));
 
 router.get('/beds', getBedsWithStatus);
 router.get('/patient-lookup', lookupPatient);

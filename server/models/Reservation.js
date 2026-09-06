@@ -29,6 +29,8 @@ const reservationSchema = new mongoose.Schema(
       enum: ['booked', 'checked_in', 'checked_out', 'cancelled'],
       default: 'booked',
     },
+    patient_rsa_envelope: { type: String, select: false },
+    patient_key_version: { type: Number, default: 1 },
   },
   { timestamps: true }
 );

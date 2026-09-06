@@ -19,6 +19,7 @@ import paymentRoutes from "./routes/paymentRoutes.js";
 import chatbotRoutes from "./routes/chatbotRoutes.js";
 import receptionRoutes from "./routes/receptionRoutes.js";
 import staffRoutes from "./routes/staffRoutes.js";
+import recordAccessRoutes from "./routes/recordAccessRoutes.js";
 
 dotenv.config();
 
@@ -84,6 +85,7 @@ app.use("/api/payment", paymentRoutes);
 app.use("/api/chatbot", chatbotRoutes);
 app.use("/api/reception", receptionRoutes);
 app.use("/api/staff", staffRoutes);
+app.use("/api/record-access", recordAccessRoutes);
 
 // Health check
 app.get("/", (req, res) => {

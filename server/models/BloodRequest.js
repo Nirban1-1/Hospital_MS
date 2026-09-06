@@ -1,6 +1,7 @@
 // server/models/BloodRequest.js
 
 import mongoose from 'mongoose';
+import { encryptedString, encryptionSchemaOptions } from '../utils/encryption.js';
 
 const bloodRequestSchema = new mongoose.Schema(
   {
@@ -13,10 +14,10 @@ const bloodRequestSchema = new mongoose.Schema(
     // required, fetched from profile at request time (snapshot)
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, trim: true },
-    phone: { type: String, required: true, trim: true },
+    phone: encryptedString({ required: true }),
 
     // required inputs
-    blood_group: { type: String, required: true, trim: true },
+    blood_group: encryptedString({ required: true }),
     age: { type: Number, required: true },
     gender: {
       type: String,
@@ -25,7 +26,7 @@ const bloodRequestSchema = new mongoose.Schema(
     },
 
     // optional
-    note: { type: String, default: '', trim: true },
+    note: encryptedString({ default: '' }),
 
     status: {
       type: String,
@@ -45,8 +46,11 @@ const bloodRequestSchema = new mongoose.Schema(
 
     accepted_at: { type: Date },
     completed_at: { type: Date },
+    patient_metadata_rsa_envelope: { type: String, select: false },
+    urgency_ecc_envelope: { type: String, select: false },
+    patient_key_version: { type: Number, default: 1 },
   },
-  { timestamps: true }
+  { timestamps: true, ...encryptionSchemaOptions }
 );
 
 const BloodRequest = mongoose.model('BloodRequest', bloodRequestSchema);

@@ -12,56 +12,54 @@ import Appointment from "../models/Appointment.js";
 import Prescription from "../models/Prescription.js";
 import Test from "../models/Test.js";
 import TestReport from "../models/TestReport.js";
+import {
+  encryptMetadataForUser,
+  protectPrescriptionForPatient,
+  protectTestBookingForPatient
+} from "../utils/recordProtection.js";
 
 const seed = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
     console.log("MongoDB connected for test reports seeding");
 
-    // Clear existing test reports
-    await TestReport.deleteMany({});
-    console.log("Cleared existing TestReport documents");
-
-    // Ensure we have at least one doctor user and one patient user
-    let doctorUser = await User.findOne({ role: "doctor" });
-    if (!doctorUser) {
-      doctorUser = await User.create({
-        name: "Seed Doctor",
-        email: "seed.doctor@example.com",
-        password: "password",
-        role: "doctor",
-      });
-      console.log("Created doctor user");
-    }
-
-    let patientUser = await User.findOne({ role: "patient" });
-    if (!patientUser) {
-      patientUser = await User.create({
-        name: "Seed Patient",
-        email: "seed.patient@example.com",
-        password: "password",
-        role: "patient",
-      });
-      console.log("Created patient user");
+    const keyFilter = {
+      rsa_public_key: { $exists: true, $ne: '' },
+      ecc_public_key: { $exists: true, $ne: '' }
+    };
+    const [doctorUser, patientUser] = await Promise.all([
+      User.findOne({ role: "doctor", ...keyFilter }),
+      User.findOne({ role: "patient", ...keyFilter })
+    ]);
+    if (!doctorUser || !patientUser) {
+      throw new Error("A doctor and patient with RSA/ECC keys are required");
     }
 
     // Ensure Doctor profile exists for the doctor user
     let doctorProfile = await Doctor.findOne({ user_id: doctorUser._id });
-    if (!doctorProfile) {
-      doctorProfile = await Doctor.create({ user_id: doctorUser._id, specialization: "General" });
-      console.log("Created Doctor profile");
-    }
+    if (!doctorProfile) throw new Error("Selected doctor has no Doctor profile");
 
     // Create an appointment for the prescription
-    const appointment = await Appointment.create({
+    const appointment = new Appointment({
       doctor_id: doctorProfile._id,
       patient_id: patientUser._id,
       date: new Date().toISOString().slice(0, 10),
       time: "09:00",
     });
+    appointment.patient_metadata_rsa_envelope = encryptMetadataForUser({
+      record_type: "appointment",
+      appointment_id: appointment._id.toString(),
+      doctor_id: doctorProfile._id.toString(),
+      patient_id: patientUser._id.toString(),
+      date: appointment.date,
+      time: appointment.time,
+      status: appointment.status
+    }, patientUser);
+    appointment.patient_key_version = patientUser.key_version || 1;
+    await appointment.save();
 
     // Create a prescription linked to that appointment
-    const prescription = await Prescription.create({
+    const prescription = new Prescription({
       appointment_id: appointment._id,
       doctor_id: doctorProfile._id,
       patient_id: patientUser._id,
@@ -71,6 +69,8 @@ const seed = async () => {
         { test_name: "Serum Creatinine", description: "Seeded" }
       ]
     });
+    protectPrescriptionForPatient(prescription, patientUser);
+    await prescription.save();
 
     // Link prescription back to appointment (optional)
     appointment.prescription_id = prescription._id;
@@ -97,12 +97,14 @@ const seed = async () => {
     }));
 
     // Create the TestReport
-    const report = await TestReport.create({
+    const report = new TestReport({
       prescription: prescription._id,
       patient: patientUser._id,
       doctor: doctorUser._id,
       tests: reportTests
     });
+    protectTestBookingForPatient(report, patientUser);
+    await report.save();
 
     console.log("Created TestReport:", report._id.toString());
     process.exit(0);

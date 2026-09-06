@@ -1,14 +1,14 @@
 // server/routes/chatbotRoutes.js
 import express from 'express';
 import { chatWithBot, getSpecializations } from '../controllers/chatbotController.js';
-import { protect } from '../middleware/authMiddleware.js';
+import { protect, requireRole } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 // Chat with bot (protected - patient only)
-router.post('/chat', protect, chatWithBot);
+router.post('/chat', protect, requireRole('patient'), chatWithBot);
 
 // Get available specializations
-router.get('/specializations', protect, getSpecializations);
+router.get('/specializations', protect, requireRole('patient'), getSpecializations);
 
 export default router;

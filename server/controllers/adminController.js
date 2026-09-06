@@ -1,5 +1,6 @@
 import User from '../models/User.js';
 import StaffSchedule from '../models/StaffSchedule.js';
+import { encryptMetadataForUser } from '../utils/recordProtection.js';
 
 // GET /api/admin/users/:role
 export const getAllUsersByRole = async (req, res) => {
@@ -80,11 +81,20 @@ export const  createStaffSchedule = async (req, res) => {
       return res.status(400).json({ message: 'Invalid staff member' });
     }
 
-    const schedule = await StaffSchedule.create({
+    const schedule = new StaffSchedule({
       staff_id,
       date: new Date(date),
       shift_type,
     });
+    schedule.staff_rsa_envelope = encryptMetadataForUser({
+      record_type: 'staff-schedule',
+      schedule_id: schedule._id.toString(),
+      staff_id: staff._id.toString(),
+      date: new Date(date).toISOString(),
+      shift_type
+    }, staff);
+    schedule.staff_key_version = staff.key_version || 1;
+    await schedule.save();
 
     const populated = await schedule.populate('staff_id', 'name staff_category phone email');
     res.status(201).json(populated);

@@ -5,20 +5,29 @@
   "description": "Backend server for CSE471 project",
   "main": "server.js",
   "scripts": {
+    "test": "node --test tests/*.test.js",
     "start": "node server.js",
     "dev": "nodemon server.js",
+    "encrypt:existing": "node scripts/encryptExistingData.js",
+    "admin:upsert": "node scripts/upsertAdmin.js",
+    "seed:doctors": "node seed/createDoctors.js",
+    "seed:doctor-slots": "node seed/addDoctorSlots.js",
+    "seed:medicines": "node seed/seedFromMedicineJS.js",
+    "seed:test-catalog": "node seed/seedTests.js",
     "seed:testReports": "node seed/seedTestReports.js",
-    "seed:tests": "node seed/test.js"
+    "seed:tests": "node seed/test.js",
+    "crypto:setup": "node scripts/setupCryptoEnv.js",
+    "crypto:migrate": "node scripts/migrateProposalEncryption.js",
+    "crypto:migrate:apply": "node scripts/migrateProposalEncryption.js --apply",
+    "test:crypto": "node --test tests/crypto.test.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
-    "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.14.1"
   },
   "devDependencies": {

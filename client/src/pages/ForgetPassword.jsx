@@ -14,6 +14,7 @@ const ForgotPassword = () => {
   const [step, setStep] = useState(1);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [resetToken, setResetToken] = useState('');
 
   const handleChange = (e) => {
     setFormData((prev) => ({
@@ -35,6 +36,7 @@ const ForgotPassword = () => {
       });
 
       if (res.data.success) {
+        setResetToken(res.data.resetToken);
         setStep(2);
       }
     } catch (err) {
@@ -49,13 +51,13 @@ const ForgotPassword = () => {
 
     try {
       const res = await api.post('/api/users/reset-password', {
-        email: formData.email,
+        resetToken,
         newPassword: formData.newPassword
       });
 
       if (res.data.success) {
         setSuccess('Password reset successful. Please login.');
-        setTimeout(() => navigate('/'), 2000);
+        setTimeout(() => navigate('/login'), 2000);
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Reset failed');

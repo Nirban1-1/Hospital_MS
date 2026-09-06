@@ -7,9 +7,13 @@ import {
   verifyUserInfo,
   resetPassword,
   getPatientPrescriptions,
+  changePassword,
+  beginTwoFactorSetup,
+  confirmTwoFactorSetup,
+  disableTwoFactor,
 } from '../controllers/userController.js';
 
-import { requireAuth } from '../middleware/authMiddleware.js';
+import { requireAuth, requireRole } from '../middleware/authMiddleware.js';
 
 
 const router = express.Router();
@@ -30,8 +34,13 @@ router.post('/verify-user', verifyUserInfo);
 
 router.post('/reset-password', resetPassword);
 
+router.put('/change-password', requireAuth, changePassword);
+router.post('/2fa/setup', requireAuth, beginTwoFactorSetup);
+router.post('/2fa/confirm', requireAuth, confirmTwoFactorSetup);
+router.post('/2fa/disable', requireAuth, disableTwoFactor);
+
 // @route   GET /api/users/prescriptions
 // @desc    Get all prescriptions for logged-in patient
-router.get('/prescriptions', requireAuth, getPatientPrescriptions);
+router.get('/prescriptions', requireAuth, requireRole('patient'), getPatientPrescriptions);
 
 export default router;

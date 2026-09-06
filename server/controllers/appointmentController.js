@@ -1,13 +1,22 @@
 // server/controllers/appointmentController.js
 import Doctor from '../models/Doctor.js';
-import User from '../models/User.js';
 import Appointment from '../models/Appointment.js';
+import User from '../models/User.js';
+import { encryptMetadataForUser, protectDoctorSchedule } from '../utils/recordProtection.js';
+
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // Get all unique specialties from doctors
 export const getSpecialties = async (req, res) => {
   try {
-    const doctors = await Doctor.find({ specialization: { $ne: null, $ne: '' } }).distinct('specialization');
-    res.status(200).json(doctors);
+    const specialties = await Doctor.distinct('specialization', {
+      specialization: { $type: 'string', $ne: '' }
+    });
+    const normalizedSpecialties = [...new Set(
+      specialties.map(specialty => specialty.trim()).filter(Boolean)
+    )].sort((a, b) => a.localeCompare(b));
+
+    res.status(200).json(normalizedSpecialties);
   } catch (error) {
     res.status(500).json({ message: 'Server error: ' + error.message });
   }
@@ -17,9 +26,17 @@ export const getSpecialties = async (req, res) => {
 export const getDoctorsBySpecialty = async (req, res) => {
   try {
     const { specialty } = req.params;
-    const doctors = await Doctor.find({ specialization: specialty }).populate('user_id', 'name location phone');
+    const normalizedSpecialty = specialty?.trim();
+
+    if (!normalizedSpecialty) {
+      return res.status(400).json({ message: 'Specialization is required.' });
+    }
+
+    const specialtyPattern = new RegExp(`^\\s*${escapeRegex(normalizedSpecialty)}\\s*$`, 'i');
+    const doctors = await Doctor.find({ specialization: specialtyPattern })
+      .populate('user_id', 'name location phone');
     
-    const formattedDoctors = doctors.map(doc => ({
+    const formattedDoctors = doctors.filter(doc => doc.user_id).map(doc => ({
       _id: doc._id,
       name: doc.user_id.name,
       location: doc.user_id.location,
@@ -138,16 +155,31 @@ export const bookAppointment = async (req, res) => {
     }
 
     // Create the appointment
-    const appointment = await Appointment.create({
+    const appointment = new Appointment({
       doctor_id,
       patient_id: req.user._id,
       date,
       time,
       status: 'booked'
     });
+    appointment.patient_metadata_rsa_envelope = encryptMetadataForUser({
+      record_type: 'appointment',
+      appointment_id: appointment._id.toString(),
+      doctor_id: doctor_id.toString(),
+      patient_id: req.user._id.toString(),
+      date,
+      time,
+      status: 'booked'
+    }, req.user);
+    appointment.patient_key_version = req.user.key_version || 1;
+    await appointment.save();
 
     // Increment the booked count for this slot
     doctor.available_slots[slotIndex].booked_count = bookedCount + 1;
+    const doctorUser = await User.findById(doctor.user_id);
+    if (doctorUser?.rsa_public_key && doctorUser?.ecc_public_key) {
+      protectDoctorSchedule(doctor, doctorUser);
+    }
     await doctor.save();
 
     res.status(201).json({ message: 'Appointment booked successfully.', appointment });
@@ -203,6 +235,15 @@ export const cancelAppointment = async (req, res) => {
 
     // Update appointment status
     appointment.status = 'cancelled';
+    appointment.patient_metadata_rsa_envelope = encryptMetadataForUser({
+      record_type: 'appointment',
+      appointment_id: appointment._id.toString(),
+      doctor_id: appointment.doctor_id.toString(),
+      patient_id: appointment.patient_id.toString(),
+      date: appointment.date,
+      time: appointment.time,
+      status: 'cancelled'
+    }, req.user);
     await appointment.save();
 
     // Decrement the booked count for this slot
@@ -214,6 +255,10 @@ export const cancelAppointment = async (req, res) => {
 
       if (slotIndex !== -1 && doctor.available_slots[slotIndex].booked_count > 0) {
         doctor.available_slots[slotIndex].booked_count -= 1;
+        const doctorUser = await User.findById(doctor.user_id);
+        if (doctorUser?.rsa_public_key && doctorUser?.ecc_public_key) {
+          protectDoctorSchedule(doctor, doctorUser);
+        }
         await doctor.save();
       }
     }

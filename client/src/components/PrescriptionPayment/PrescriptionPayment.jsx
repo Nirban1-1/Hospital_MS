@@ -11,6 +11,9 @@ const PrescriptionPayment = ({ appointmentId }) => {
   const [selectedPrescription, setSelectedPrescription] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('dummy');
   const [processing, setProcessing] = useState(false);
+  const [reportDrafts, setReportDrafts] = useState({});
+  const [uploadingReportId, setUploadingReportId] = useState(null);
+  const [reportError, setReportError] = useState('');
 
   useEffect(() => {
     fetchPrescriptions();
@@ -34,6 +37,34 @@ const PrescriptionPayment = ({ appointmentId }) => {
       console.error('Error fetching prescriptions:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const uploadTestReport = async (prescriptionId, testId) => {
+    const draftKey = `${prescriptionId}:${testId}`;
+    const testReport = reportDrafts[draftKey]?.trim();
+
+    if (!testReport) {
+      setReportError('Enter the test result or report link before uploading.');
+      return;
+    }
+
+    setUploadingReportId(testId);
+    setReportError('');
+
+    try {
+      await api.put(
+        `/api/doctor/prescription/${prescriptionId}/test/${testId}/report`,
+        { test_report: testReport },
+        { headers }
+      );
+      setReportDrafts((current) => ({ ...current, [draftKey]: '' }));
+      await fetchPrescriptions();
+    } catch (error) {
+      console.error('Error uploading test report:', error);
+      setReportError(error.response?.data?.message || 'Could not upload the test report.');
+    } finally {
+      setUploadingReportId(null);
     }
   };
 
@@ -223,14 +254,63 @@ const PrescriptionPayment = ({ appointmentId }) => {
                       </h5>
                       <div className="space-y-2">
                         {prescription.tests.map((test, idx) => (
-                          <div key={idx} className="p-3 bg-white border border-gray-200 rounded-lg">
+                          <div key={test._id || idx} className="p-3 bg-white border border-gray-200 rounded-lg">
                             <p className="font-semibold text-headingColor">{test.name}</p>
                             {test.description && (
                               <p className="text-sm text-textColor">{test.description}</p>
                             )}
+                            <p className="mt-1 text-xs font-semibold text-textColor">
+                              Status: {test.status === 'completed' ? 'Completed' : 'Report pending'}
+                            </p>
+
+                            {test.test_report && (
+                              <div className="mt-3 rounded-lg border border-green-200 bg-green-50 p-3">
+                                <p className="text-xs font-semibold text-green-700">Test Report</p>
+                                <p className="mt-1 whitespace-pre-wrap break-words text-sm text-green-900">
+                                  {test.test_report}
+                                </p>
+                                {test.report_date && (
+                                  <p className="mt-1 text-xs text-green-700">
+                                    Uploaded {new Date(test.report_date).toLocaleDateString()}
+                                  </p>
+                                )}
+                              </div>
+                            )}
+
+                            {test._id && (
+                              <div className="mt-3 space-y-2">
+                                <textarea
+                                  rows={2}
+                                  value={reportDrafts[`${prescription._id}:${test._id}`] || ''}
+                                  onChange={(event) => {
+                                    const draftKey = `${prescription._id}:${test._id}`;
+                                    setReportDrafts((current) => ({
+                                      ...current,
+                                      [draftKey]: event.target.value
+                                    }));
+                                    setReportError('');
+                                  }}
+                                  placeholder={test.test_report ? 'Replace report text or link' : 'Enter report text or link'}
+                                  className="w-full resize-y rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primaryColor focus:outline-none focus:ring-2 focus:ring-primaryColor/20"
+                                />
+                                <button
+                                  type="button"
+                                  disabled={uploadingReportId === test._id}
+                                  onClick={() => uploadTestReport(prescription._id, test._id)}
+                                  className="px-4 py-2 bg-primaryColor text-white text-sm font-semibold rounded-lg disabled:opacity-50"
+                                >
+                                  {uploadingReportId === test._id
+                                    ? 'Uploading...'
+                                    : test.test_report ? 'Replace Report' : 'Upload Report'}
+                                </button>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
+                      {reportError && (
+                        <p className="mt-3 text-sm text-red-600" role="alert">{reportError}</p>
+                      )}
                     </div>
                   )}
 

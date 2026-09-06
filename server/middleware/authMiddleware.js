@@ -1,5 +1,5 @@
-import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import { verifySessionToken } from '../utils/sessionToken.js';
 
 // Middleware to check if user is authenticated
 export const requireAuth = async (req, res, next) => {
@@ -12,7 +12,10 @@ export const requireAuth = async (req, res, next) => {
   const token = authHeader.split(' ')[1];
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = verifySessionToken(token);
+    if (decoded.scope !== 'session') {
+      throw new Error('Token is not an authenticated session');
+    }
     req.user = await User.findById(decoded.id).select('-password');
 
     if (!req.user) {
@@ -41,6 +44,26 @@ export const requireAdmin = (req, res, next) => {
   }
 
   return res.status(403).json({ message: 'Forbidden: Admins only' });
+};
+
+export const requireRole = (...allowedRoles) => (req, res, next) => {
+  if (req.user && allowedRoles.includes(req.user.role)) {
+    return next();
+  }
+
+  return res.status(403).json({
+    message: `Forbidden: requires ${allowedRoles.join(' or ')} role`
+  });
+};
+
+export const requireStaffCategory = (...allowedCategories) => (req, res, next) => {
+  if (req.user?.role === 'staff' && allowedCategories.includes(req.user.staff_category)) {
+    return next();
+  }
+
+  return res.status(403).json({
+    message: `Forbidden: requires ${allowedCategories.join(' or ')} staff category`
+  });
 };
 
 // Alias for compatibility

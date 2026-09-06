@@ -4,12 +4,12 @@ import {
   getPrescriptionPaymentStatus,
   getPatientPrescriptionsWithPayment 
 } from '../controllers/paymentController.js';
-import { requireAuth } from '../middleware/authMiddleware.js';
+import { requireAuth, requireRole } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 // All routes require authentication
-router.use(requireAuth);
+router.use(requireAuth, requireRole('patient'));
 
 // Get all prescriptions with payment info
 router.get('/my-prescriptions', getPatientPrescriptionsWithPayment);

@@ -217,33 +217,25 @@ const getHomeRemedies = (specialization) => {
 // Main chatbot endpoint
 export const chatWithBot = async (req, res) => {
   try {
-    console.log('Chatbot request received:', { message: req.body.message, userId: req.user?.id });
-    
     const { message, conversationHistory = [] } = req.body;
     const userId = req.user?.id || req.user?._id;
     
     if (!message || message.trim() === '') {
-      console.log('Empty message received');
       return res.status(400).json({ message: 'Message is required' });
     }
     
     if (!userId) {
-      console.log('No user ID found in request');
       return res.status(401).json({ message: 'User not authenticated' });
     }
     
     // Get patient details
     const patient = await User.findById(userId);
-    console.log('Patient found:', patient ? patient.name : 'Not found');
-    
     if (!patient) {
       return res.status(404).json({ message: 'Patient not found' });
     }
     
     // Generate response
-    console.log('Generating response for message:', message);
     const response = await generateResponse(message, patient.name, conversationHistory);
-    console.log('Response generated:', { hasMessage: !!response.message, doctorsCount: response.doctors?.length });
     
     res.status(200).json({
       success: true,

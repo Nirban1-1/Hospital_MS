@@ -5,17 +5,17 @@ import {
   acceptRequest,
   completeRequest
 } from '../controllers/driverController.js';
-import { requireAuth, requireVerified } from '../middleware/authMiddleware.js';
+import { requireAuth, requireRole, requireVerified } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 // View driver dashboard
-router.get('/dashboard', requireAuth, requireVerified, getDriverDashboard);
+router.get('/dashboard', requireAuth, requireVerified, requireRole('ambulance_driver'), getDriverDashboard);
 
 // Accept an ambulance request
-router.patch('/accept/:id', requireAuth, requireVerified, acceptRequest);
+router.patch('/accept/:id', requireAuth, requireVerified, requireRole('ambulance_driver'), acceptRequest);
 
 // Complete an ambulance request
-router.patch('/complete/:id', requireAuth, requireVerified, completeRequest);
+router.patch('/complete/:id', requireAuth, requireVerified, requireRole('ambulance_driver'), completeRequest);
 
 export default router;

@@ -188,9 +188,12 @@ export const getPatientPrescriptionsWithPayment = async (req, res) => {
         price: m.medicine_id?.price
       })),
       tests: p.tests.map(t => ({
+        _id: t._id,
         name: t.test_name,
         description: t.description,
-        status: t.status
+        status: t.status,
+        test_report: t.test_report,
+        report_date: t.report_date
       }))
     }));
 

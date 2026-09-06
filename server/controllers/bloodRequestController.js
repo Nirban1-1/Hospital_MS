@@ -3,6 +3,30 @@
 import BloodRequest from '../models/BloodRequest.js';
 import User from '../models/User.js';
 import BloodDonor from '../models/BloodDonor.js';
+import { encryptClinicalTextForUser, encryptMetadataForUser } from '../utils/recordProtection.js';
+
+const protectBloodRequest = (request, patient) => {
+  request.patient_metadata_rsa_envelope = encryptMetadataForUser({
+    record_type: 'blood-request',
+    request_id: request._id.toString(),
+    patient_id: request.patient_id.toString(),
+    name: request.name,
+    email: request.email,
+    phone: request.phone,
+    blood_group: request.blood_group,
+    age: request.age,
+    gender: request.gender,
+    status: request.status,
+    donor_id: request.donor_id?.toString() || null,
+    requested_at: request.requested_at?.toISOString() || null,
+    accepted_at: request.accepted_at?.toISOString() || null,
+    completed_at: request.completed_at?.toISOString() || null
+  }, patient);
+  request.urgency_ecc_envelope = encryptClinicalTextForUser({
+    note: request.note || ''
+  }, patient);
+  request.patient_key_version = patient.key_version || 1;
+};
 
 // @desc Create a blood request
 // @route POST /api/blood/request
@@ -19,7 +43,8 @@ export const createBloodRequest = async (req, res) => {
     }
 
     // Fetch required fields from profile
-    const patient = await User.findById(patient_id).select('name email phone');
+    const patient = await User.findById(patient_id)
+      .select('name email phone rsa_public_key ecc_public_key key_version');
     if (!patient) {
       return res.status(404).json({ message: 'Patient not found.' });
     }
@@ -30,7 +55,7 @@ export const createBloodRequest = async (req, res) => {
       });
     }
 
-    const request = await BloodRequest.create({
+    const request = new BloodRequest({
       patient_id,
       name: patient.name,
       email: patient.email,
@@ -40,6 +65,8 @@ export const createBloodRequest = async (req, res) => {
       gender,
       note: note || '',
     });
+    protectBloodRequest(request, patient);
+    await request.save();
 
     res.status(201).json({ message: 'Blood request created.', request });
   } catch (error) {
@@ -66,7 +93,6 @@ export const getPendingRequests = async (req, res) => {
       current_user_id: req.user._id,
     }));
 
-    console.log('Returning requests to donor:', enrichedRequests);
     res.status(200).json(enrichedRequests);
   } catch (error) {
     res.status(500).json({ message: 'Server error: ' + error.message });
@@ -100,6 +126,10 @@ export const acceptBloodRequest = async (req, res) => {
     request.status = 'accepted';
     request.donor_id = donor_id;
     request.accepted_at = new Date();
+    const patient = await User.findById(request.patient_id);
+    if (patient?.rsa_public_key && patient?.ecc_public_key) {
+      protectBloodRequest(request, patient);
+    }
     await request.save();
 
     const today = new Date().toISOString().split('T')[0];
@@ -168,6 +198,10 @@ export const completeDonation = async (req, res) => {
 
     request.status = 'completed';
     request.completed_at = new Date();
+    const patient = await User.findById(request.patient_id);
+    if (patient?.rsa_public_key && patient?.ecc_public_key) {
+      protectBloodRequest(request, patient);
+    }
     await request.save();
 
     res.status(200).json({ message: 'Donation marked as completed.', request });

@@ -1,7 +1,9 @@
 // server/seed/fixRivanAccount.js
 import mongoose from 'mongoose';
 import User from '../models/User.js';
-import bcrypt from 'bcryptjs';
+import { hashPassword } from '../utils/password.js';
+import { generateUserKeyMaterial } from '../utils/keyManagement.js';
+import { encryptMetadataForUser } from '../utils/recordProtection.js';
 
 import dotenv from 'dotenv';
 import path from 'path';
@@ -14,6 +16,10 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const run = async () => {
   try {
+    const password = process.env.ADMIN_PASSWORD;
+    if (!password || password.length < 12) {
+      throw new Error('Set ADMIN_PASSWORD to at least 12 characters');
+    }
     await mongoose.connect(process.env.MONGO_URI);
     console.log('✅ Connected to MongoDB');
 
@@ -35,8 +41,19 @@ const run = async () => {
     user.is_verified = true;
     user.name = 'Rivan'; // Fix capitalization
     
-    // Reset password to "admin"
-    user.password = await bcrypt.hash('admin', 10);
+    user.password = await hashPassword(password);
+    Object.assign(user, await generateUserKeyMaterial(password));
+    user.key_version = (user.key_version || 1) + 1;
+    user.key_rotated_at = new Date();
+    user.profile_rsa_envelope = encryptMetadataForUser({
+      record_type: 'user-profile',
+      user_id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      phone: user.phone || '',
+      location: user.location || '',
+      blood_type: user.blood_type || ''
+    }, user);
     
     await user.save();
 
@@ -45,7 +62,6 @@ const run = async () => {
     console.log(`   Name: ${user.name}`);
     console.log(`   Role: ${user.role}`);
     console.log(`   Verified: ${user.is_verified}`);
-    console.log(`   Password: admin`);
 
     process.exit();
   } catch (err) {

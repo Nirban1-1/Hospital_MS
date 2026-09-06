@@ -17,39 +17,50 @@ const seedMedicines = async () => {
     await mongoose.connect(process.env.MONGO_URI);
     console.log('MongoDB Connected for medicine seeding');
 
-    // Clear existing medicines
-    await Medicine.deleteMany({});
-    console.log('Cleared existing medicines');
+    const validMedicines = medicineData.filter(medicine => (
+      typeof medicine.drugName === 'string' && medicine.drugName.trim() &&
+      typeof medicine.description === 'string' && medicine.description.trim() &&
+      typeof medicine.category === 'string' && medicine.category.trim() &&
+      Number.isFinite(Number(medicine.price))
+    ));
 
-    // Validate data before inserting
-    console.log(`Attempting to insert ${medicineData.length} medicines from medicine.js...`);
-    
-    // Insert medicines one by one to find problematic entries
-    let successCount = 0;
-    let failCount = 0;
-    
-    for (const med of medicineData) {
-      try {
-        await Medicine.create(med);
-        successCount++;
-        if (successCount % 100 === 0) {
-          console.log(`Progress: ${successCount} medicines inserted...`);
+    const uniqueMedicines = [...new Map(validMedicines.map(medicine => [
+      [medicine.drugName, medicine.manufacturer, medicine.description, medicine.consumeType]
+        .join('|')
+        .toLowerCase(),
+      medicine
+    ])).values()];
+
+    console.log(`Upserting ${uniqueMedicines.length} medicines from medicine.js...`);
+
+    const batchSize = 500;
+    let processed = 0;
+
+    for (let index = 0; index < uniqueMedicines.length; index += batchSize) {
+      const batch = uniqueMedicines.slice(index, index + batchSize);
+      await Medicine.bulkWrite(batch.map(medicine => ({
+        updateOne: {
+          filter: {
+            drugName: medicine.drugName,
+            manufacturer: medicine.manufacturer,
+            description: medicine.description,
+            consumeType: medicine.consumeType
+          },
+          update: { $set: medicine },
+          upsert: true
         }
-      } catch (error) {
-        failCount++;
-        console.error(`Failed to insert medicine: ${med.drugName}`, error.message);
-      }
+      })), { ordered: false });
+
+      processed += batch.length;
+      console.log(`Progress: ${processed}/${uniqueMedicines.length}`);
     }
 
-    console.log(`✅ Successfully seeded ${successCount} medicines to the database`);
-    if (failCount > 0) {
-      console.log(`⚠️  Failed to seed ${failCount} medicines`);
-    }
-
-    process.exit(0);
+    console.log(`Medicine seed complete: ${await Medicine.countDocuments()} records in database`);
   } catch (error) {
     console.error('Error seeding medicines:', error);
-    process.exit(1);
+    process.exitCode = 1;
+  } finally {
+    await mongoose.disconnect();
   }
 };
 

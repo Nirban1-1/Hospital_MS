@@ -1,8 +1,10 @@
 // server/seed/createDoctors.js
-import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
 import User from '../models/User.js';
 import Doctor from '../models/Doctor.js';
+import { generateUserKeyMaterial } from '../utils/keyManagement.js';
+import { encryptMetadataForUser, protectDoctorSchedule } from '../utils/recordProtection.js';
+import { hashPassword } from '../utils/password.js';
 
 import dotenv from 'dotenv';
 import path from 'path';
@@ -18,6 +20,11 @@ const run = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
     console.log('✅ Connected to MongoDB');
+
+    const demoDoctorPassword = process.env.DEMO_DOCTOR_PASSWORD;
+    if (!demoDoctorPassword || demoDoctorPassword.length < 12) {
+      throw new Error('Set DEMO_DOCTOR_PASSWORD to at least 12 characters before seeding doctors.');
+    }
 
     const doctors = [
       {
@@ -223,33 +230,68 @@ const run = async () => {
     ];
 
     for (const doctorData of doctors) {
-      const existing = await User.findOne({ email: doctorData.email });
+      let user = await User.findOne({ email: doctorData.email });
 
-      if (existing) {
-        console.log(`⚠️  Doctor already exists: ${doctorData.email}`);
+      if (user && user.role !== 'doctor') {
+        console.log(`Skipping ${doctorData.email}: email belongs to a non-doctor account.`);
         continue;
       }
 
-      // Create User account
-      const hashedPassword = await bcrypt.hash(doctorData.password, 10);
-      const user = await User.create({
-        name: doctorData.name,
-        email: doctorData.email,
-        password: hashedPassword,
-        phone: doctorData.phone,
-        location: doctorData.location,
-        role: 'doctor',
-        is_verified: true
-      });
+      if (!user) {
+        const keyMaterial = await generateUserKeyMaterial(demoDoctorPassword);
+        const profileEnvelope = encryptMetadataForUser({
+          record_type: 'user-profile',
+          name: doctorData.name,
+          email: doctorData.email,
+          phone: doctorData.phone,
+          location: doctorData.location,
+          blood_type: ''
+        }, keyMaterial);
+        user = await User.create({
+          name: doctorData.name,
+          email: doctorData.email,
+          password: await hashPassword(demoDoctorPassword),
+          phone: doctorData.phone,
+          location: doctorData.location,
+          role: 'doctor',
+          is_verified: true,
+          profile_rsa_envelope: profileEnvelope,
+          ...keyMaterial
+        });
+      }
 
-      // Create Doctor profile
-      await Doctor.create({
-        user_id: user._id,
-        specialization: doctorData.specialization,
-        available_slots: []
-      });
+      const doctorProfile = await Doctor.findOne({ user_id: user._id });
+      if (!doctorProfile) {
+        const createdProfile = new Doctor({
+          user_id: user._id,
+          specialization: doctorData.specialization,
+          available_slots: []
+        });
+        createdProfile.profile_rsa_envelope = encryptMetadataForUser({
+          record_type: 'doctor-registration',
+          doctor_id: createdProfile._id.toString(),
+          user_id: user._id.toString(),
+          name: user.name,
+          specialization: doctorData.specialization,
+          qualification: ''
+        }, user);
+        protectDoctorSchedule(createdProfile, user);
+        await createdProfile.save();
+      } else if (!doctorProfile.specialization?.trim()) {
+        doctorProfile.specialization = doctorData.specialization;
+        doctorProfile.profile_rsa_envelope = encryptMetadataForUser({
+          record_type: 'doctor-registration',
+          doctor_id: doctorProfile._id.toString(),
+          user_id: user._id.toString(),
+          name: user.name,
+          specialization: doctorData.specialization,
+          qualification: doctorProfile.qualification || ''
+        }, user);
+        protectDoctorSchedule(doctorProfile, user);
+        await doctorProfile.save();
+      }
 
-      console.log(`✅ Doctor created: ${doctorData.email} - ${doctorData.specialization}`);
+      console.log(`Doctor ready: ${doctorData.email} - ${doctorData.specialization}`);
     }
 
     console.log('✅ Doctor seeding complete');

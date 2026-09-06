@@ -1,8 +1,10 @@
 // server/seed/createDoctors.js
-import bcrypt from 'bcryptjs';
+import { hashPassword } from '../utils/password.js';
+import { generateUserKeyMaterial } from '../utils/keyManagement.js';
 import mongoose from 'mongoose';
 import User from '../models/User.js';
 import Doctor from '../models/Doctor.js';
+import { encryptMetadataForUser, protectDoctorSchedule } from '../utils/recordProtection.js';
 
 import dotenv from 'dotenv';
 import path from 'path';
@@ -16,6 +18,10 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const run = async () => {
   try {
+    const demoDoctorPassword = process.env.DEMO_DOCTOR_PASSWORD;
+    if (!demoDoctorPassword || demoDoctorPassword.length < 12) {
+      throw new Error('Set DEMO_DOCTOR_PASSWORD to at least 12 characters');
+    }
     await mongoose.connect(process.env.MONGO_URI);
     console.log('✅ Connected to MongoDB');
 
@@ -451,11 +457,22 @@ const run = async () => {
       }
 
       // Create User account
-      const hashedPassword = await bcrypt.hash(doctorData.password, 10);
+      const hashedPassword = await hashPassword(demoDoctorPassword);
+      const keyMaterial = await generateUserKeyMaterial(demoDoctorPassword);
+      const profileEnvelope = encryptMetadataForUser({
+        record_type: 'user-profile',
+        name: doctorData.name,
+        email: doctorData.email,
+        phone: doctorData.phone,
+        location: doctorData.location,
+        blood_type: ''
+      }, keyMaterial);
       const user = await User.create({
         name: doctorData.name,
         email: doctorData.email,
         password: hashedPassword,
+        ...keyMaterial,
+        profile_rsa_envelope: profileEnvelope,
         phone: doctorData.phone,
         location: doctorData.location,
         role: 'doctor',
@@ -463,11 +480,21 @@ const run = async () => {
       });
 
       // Create Doctor profile
-      await Doctor.create({
+      const doctor = new Doctor({
         user_id: user._id,
         specialization: doctorData.specialization,
         available_slots: []
       });
+      doctor.profile_rsa_envelope = encryptMetadataForUser({
+        record_type: 'doctor-registration',
+        doctor_id: doctor._id.toString(),
+        user_id: user._id.toString(),
+        name: user.name,
+        specialization: doctorData.specialization,
+        qualification: ''
+      }, user);
+      protectDoctorSchedule(doctor, user);
+      await doctor.save();
 
       console.log(`✅ Doctor created: ${doctorData.email} - ${doctorData.specialization}`);
     }

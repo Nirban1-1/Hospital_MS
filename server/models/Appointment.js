@@ -10,7 +10,10 @@ const appointmentSchema = new mongoose.Schema({
     enum: ['booked', 'completed', 'cancelled', 'treated'], 
     default: 'booked' 
   },
-  prescription_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Prescription' }
+  prescription_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Prescription' },
+  patient_metadata_rsa_envelope: { type: String, select: false },
+  patient_key_version: { type: Number, default: 1 },
+  crypto_version: { type: String, default: 'proposal-v1' }
 }, { timestamps: true });
 
 const Appointment = mongoose.model('Appointment', appointmentSchema);

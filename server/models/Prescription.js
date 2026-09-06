@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { encryptedString, encryptionSchemaOptions } from '../utils/encryption.js';
 
 const prescriptionSchema = new mongoose.Schema({
   appointment_id: {
@@ -16,24 +17,16 @@ const prescriptionSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
-  notes: {
-    type: String,
-    default: ''
-  },
+  notes: encryptedString({ default: '' }),
   medicines: [{
     medicine_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Medicine',
       required: true
     },
-    dosage: {
-      type: String,
-      default: ''
-    },
-    duration: {
-      type: String,
-      default: ''
-    },
+    medicine_name: encryptedString({ default: '' }),
+    dosage: encryptedString({ default: '' }),
+    duration: encryptedString({ default: '' }),
     timing: {
       morning: {
         type: Number,
@@ -54,14 +47,8 @@ const prescriptionSchema = new mongoose.Schema({
       type: String,
       required: true
     },
-    description: {
-      type: String,
-      default: ''
-    },
-    test_report: {
-      type: String,
-      default: ''
-    },
+    description: encryptedString({ default: '' }),
+    test_report: encryptedString({ default: '' }),
     report_date: {
       type: Date,
       default: null
@@ -93,9 +80,14 @@ const prescriptionSchema = new mongoose.Schema({
     type: String,
     enum: ['cash', 'card', 'mobile_banking', 'dummy'],
     default: null
-  }
+  },
+  patient_metadata_rsa_envelope: { type: String, select: false },
+  patient_clinical_ecc_envelope: { type: String, select: false },
+  patient_key_version: { type: Number, default: 1 },
+  crypto_version: { type: String, default: 'proposal-v1' }
 }, {
-  timestamps: true
+  timestamps: true,
+  ...encryptionSchemaOptions
 });
 
 export default mongoose.model('Prescription', prescriptionSchema);

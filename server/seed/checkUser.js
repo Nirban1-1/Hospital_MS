@@ -1,7 +1,7 @@
 // server/seed/checkUser.js
 import mongoose from 'mongoose';
 import User from '../models/User.js';
-import bcrypt from 'bcryptjs';
+import { verifyPassword } from '../utils/password.js';
 
 import dotenv from 'dotenv';
 import path from 'path';
@@ -14,6 +14,7 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const run = async () => {
   try {
+    const password = process.env.ADMIN_PASSWORD;
     await mongoose.connect(process.env.MONGO_URI);
     console.log('✅ Connected to MongoDB');
 
@@ -28,9 +29,10 @@ const run = async () => {
       console.log(`   Role: ${user.role}`);
       console.log(`   Verified: ${user.is_verified}`);
       
-      // Test password
-      const isMatch = await bcrypt.compare('admin', user.password);
-      console.log(`   Password "admin" works: ${isMatch ? '✅ YES' : '❌ NO'}`);
+      if (password) {
+        const isMatch = await verifyPassword(password, user.password);
+        console.log(`   Configured ADMIN_PASSWORD works: ${isMatch ? '✅ YES' : '❌ NO'}`);
+      }
     }
 
     process.exit();

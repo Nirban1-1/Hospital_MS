@@ -1,6 +1,8 @@
 // server/seed/addDoctorSlots.js
 import mongoose from 'mongoose';
 import Doctor from '../models/Doctor.js';
+import User from '../models/User.js';
+import { protectDoctorSchedule } from '../utils/recordProtection.js';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -49,9 +51,14 @@ const run = async () => {
 
     // Add slots to all doctors
     for (const doctor of doctors) {
-      await Doctor.findByIdAndUpdate(doctor._id, {
-        $set: { available_slots: slots }
-      });
+      const user = await User.findById(doctor.user_id);
+      if (!user?.rsa_public_key || !user?.ecc_public_key) {
+        console.log(`Skipping doctor ${doctor._id}: encryption keys are missing`);
+        continue;
+      }
+      doctor.available_slots = slots;
+      protectDoctorSchedule(doctor, user);
+      await doctor.save();
       console.log(`✅ Added slots for doctor ID: ${doctor._id}`);
     }
 

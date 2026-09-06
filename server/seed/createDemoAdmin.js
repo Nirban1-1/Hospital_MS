@@ -1,5 +1,7 @@
 // server/seed/createDemoAdmin.js
-import bcrypt from 'bcryptjs';
+import { hashPassword } from '../utils/password.js';
+import { generateUserKeyMaterial } from '../utils/keyManagement.js';
+import { encryptMetadataForUser } from '../utils/recordProtection.js';
 import mongoose from 'mongoose';
 import User from '../models/User.js';
 
@@ -14,6 +16,10 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const run = async () => {
   try {
+    const password = process.env.DEMO_ADMIN_PASSWORD;
+    if (!password || password.length < 12) {
+      throw new Error('Set DEMO_ADMIN_PASSWORD to at least 12 characters');
+    }
     await mongoose.connect(process.env.MONGO_URI);
     console.log('✅ Connected to MongoDB');
 
@@ -27,11 +33,22 @@ const run = async () => {
       process.exit();
     }
 
-    const hashedPassword = await bcrypt.hash('admin', 10);
+    const hashedPassword = await hashPassword(password);
+    const keyMaterial = await generateUserKeyMaterial(password);
+    const profileEnvelope = encryptMetadataForUser({
+      record_type: 'user-profile',
+      name: 'Demo Admin',
+      email: 'demo@gmail.com',
+      phone: '01700000000',
+      location: 'Demo Location',
+      blood_type: ''
+    }, keyMaterial);
     await User.create({
       name: 'Demo Admin',
       email: 'demo@gmail.com',
       password: hashedPassword,
+      ...keyMaterial,
+      profile_rsa_envelope: profileEnvelope,
       phone: '01700000000',
       location: 'Demo Location',
       role: 'admin',
@@ -40,7 +57,6 @@ const run = async () => {
 
     console.log('✅ Demo admin created successfully!');
     console.log('   Email: demo@gmail.com');
-    console.log('   Password: admin');
     process.exit();
   } catch (err) {
     console.error('❌ Error creating demo admin:', err.message);

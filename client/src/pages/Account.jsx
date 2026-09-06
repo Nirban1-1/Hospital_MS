@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '../api/api';
+import RecordAccessPanel from '../components/RecordAccessPanel/RecordAccessPanel';
 
 const Account = () => {
   const [user, setUser] = useState(null);
@@ -10,6 +11,15 @@ const Account = () => {
     location: '',
     password: ''
   });
+  const [securityForm, setSecurityForm] = useState({
+    twoFactorPassword: '',
+    otp: '',
+    currentPassword: '',
+    newPassword: ''
+  });
+  const [twoFactorSetup, setTwoFactorSetup] = useState(null);
+  const [securityMessage, setSecurityMessage] = useState('');
+  const [securityError, setSecurityError] = useState('');
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -55,6 +65,74 @@ const Account = () => {
     } catch (err) {
       console.error('Error updating profile:', err.response?.data?.message || err.message);
       alert('Update failed: ' + (err.response?.data?.message || 'Unknown error'));
+    }
+  };
+
+  const authConfig = () => ({
+    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+  });
+
+  const updateSecurityField = (e) => {
+    setSecurityForm((previous) => ({ ...previous, [e.target.name]: e.target.value }));
+  };
+
+  const beginTwoFactor = async () => {
+    setSecurityError('');
+    setSecurityMessage('');
+    try {
+      const response = await api.post('/api/users/2fa/setup', {
+        password: securityForm.twoFactorPassword
+      }, authConfig());
+      setTwoFactorSetup(response.data);
+      setSecurityMessage('Add this secret to your authenticator, then enter its current code.');
+    } catch (error) {
+      setSecurityError(error.response?.data?.message || 'Unable to start two-factor setup');
+    }
+  };
+
+  const confirmTwoFactor = async () => {
+    setSecurityError('');
+    try {
+      const response = await api.post('/api/users/2fa/confirm', {
+        password: securityForm.twoFactorPassword,
+        otp: securityForm.otp
+      }, authConfig());
+      setUser((previous) => ({ ...previous, two_factor_enabled: true }));
+      setTwoFactorSetup(null);
+      setSecurityForm((previous) => ({ ...previous, otp: '', twoFactorPassword: '' }));
+      setSecurityMessage(response.data.message);
+    } catch (error) {
+      setSecurityError(error.response?.data?.message || 'Unable to enable two-factor authentication');
+    }
+  };
+
+  const disableTwoFactor = async () => {
+    setSecurityError('');
+    try {
+      const response = await api.post('/api/users/2fa/disable', {
+        password: securityForm.twoFactorPassword,
+        otp: securityForm.otp
+      }, authConfig());
+      setUser((previous) => ({ ...previous, two_factor_enabled: false }));
+      setSecurityForm((previous) => ({ ...previous, otp: '', twoFactorPassword: '' }));
+      setSecurityMessage(response.data.message);
+    } catch (error) {
+      setSecurityError(error.response?.data?.message || 'Unable to disable two-factor authentication');
+    }
+  };
+
+  const changePassword = async (e) => {
+    e.preventDefault();
+    setSecurityError('');
+    try {
+      const response = await api.put('/api/users/change-password', {
+        currentPassword: securityForm.currentPassword,
+        newPassword: securityForm.newPassword
+      }, authConfig());
+      setSecurityForm((previous) => ({ ...previous, currentPassword: '', newPassword: '' }));
+      setSecurityMessage(response.data.message);
+    } catch (error) {
+      setSecurityError(error.response?.data?.message || 'Unable to change password');
     }
   };
 
@@ -224,6 +302,117 @@ const Account = () => {
             </div>
           </div>
         )}
+
+        {user && !editMode && (
+          <div className="mt-8">
+            {securityError && (
+              <div className="mb-4 border-l-4 border-red-500 bg-red-50 p-4 rounded-lg text-sm text-red-700">
+                {securityError}
+              </div>
+            )}
+            {securityMessage && (
+              <div className="mb-4 border-l-4 border-green-500 bg-green-50 p-4 rounded-lg text-sm text-green-700">
+                {securityMessage}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <section className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                <div className="flex items-center justify-between gap-4 mb-5">
+                  <h3 className="text-xl font-bold text-headingColor">Two-Factor Authentication</h3>
+                  <span className={`text-sm font-semibold ${user.two_factor_enabled ? 'text-green-700' : 'text-gray-500'}`}>
+                    {user.two_factor_enabled ? 'Enabled' : 'Disabled'}
+                  </span>
+                </div>
+
+                {twoFactorSetup && (
+                  <div className="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                    <p className="text-xs font-semibold text-textColor mb-1">Authenticator secret</p>
+                    <code className="block break-all text-sm text-headingColor">{twoFactorSetup.secret}</code>
+                  </div>
+                )}
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-headingColor mb-2">Password</label>
+                    <input
+                      type="password"
+                      name="twoFactorPassword"
+                      value={securityForm.twoFactorPassword}
+                      onChange={updateSecurityField}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-primaryColor outline-none"
+                    />
+                  </div>
+
+                  {(twoFactorSetup || user.two_factor_enabled) && (
+                    <div>
+                      <label className="block text-sm font-semibold text-headingColor mb-2">Authenticator Code</label>
+                      <input
+                        type="text"
+                        name="otp"
+                        inputMode="numeric"
+                        pattern="[0-9]{6}"
+                        maxLength={6}
+                        value={securityForm.otp}
+                        onChange={updateSecurityField}
+                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-primaryColor outline-none"
+                      />
+                    </div>
+                  )}
+
+                  {!user.two_factor_enabled && !twoFactorSetup && (
+                    <button type="button" onClick={beginTwoFactor} className="w-full py-3 px-4 bg-primaryColor text-white font-semibold rounded-lg hover:bg-primaryColor/90">
+                      Start Setup
+                    </button>
+                  )}
+                  {!user.two_factor_enabled && twoFactorSetup && (
+                    <button type="button" onClick={confirmTwoFactor} className="w-full py-3 px-4 bg-primaryColor text-white font-semibold rounded-lg hover:bg-primaryColor/90">
+                      Enable 2FA
+                    </button>
+                  )}
+                  {user.two_factor_enabled && (
+                    <button type="button" onClick={disableTwoFactor} className="w-full py-3 px-4 border border-red-300 text-red-700 font-semibold rounded-lg hover:bg-red-50">
+                      Disable 2FA
+                    </button>
+                  )}
+                </div>
+              </section>
+
+              <form onSubmit={changePassword} className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                <h3 className="text-xl font-bold text-headingColor mb-5">Change Password</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-headingColor mb-2">Current Password</label>
+                    <input
+                      type="password"
+                      name="currentPassword"
+                      value={securityForm.currentPassword}
+                      onChange={updateSecurityField}
+                      required
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-primaryColor outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-headingColor mb-2">New Password</label>
+                    <input
+                      type="password"
+                      name="newPassword"
+                      minLength={8}
+                      value={securityForm.newPassword}
+                      onChange={updateSecurityField}
+                      required
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-primaryColor outline-none"
+                    />
+                  </div>
+                  <button type="submit" className="w-full py-3 px-4 bg-headingColor text-white font-semibold rounded-lg hover:bg-black">
+                    Change Password
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+        {user && !editMode && <RecordAccessPanel role={user.role} />}
       </div>
     </div>
   );

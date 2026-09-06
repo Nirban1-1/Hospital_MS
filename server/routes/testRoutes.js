@@ -1,9 +1,9 @@
 // routes/testRoutes.js
 import express from "express";
 import { searchTests } from "../controllers/testController.js";
+import { requireAuth, requireRole } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// make search public so autosuggest works without needing auth token
-router.get("/search", searchTests);
+router.get("/search", requireAuth, requireRole('doctor'), searchTests);
 export default router;

@@ -5,6 +5,12 @@ import Appointment from '../models/Appointment.js';
 import Prescription from '../models/Prescription.js';
 import Test from '../models/Test.js';
 import TestReport from '../models/TestReport.js';
+import {
+  encryptMetadataForUser,
+  protectDoctorSchedule,
+  protectPrescriptionForPatient,
+  protectTestBookingForPatient
+} from '../utils/recordProtection.js';
 
 export const getDoctorDashboard = async (req, res) => {
   try {
@@ -74,6 +80,7 @@ export const addAvailableSlot = async (req, res) => {
     }
 
     doctor.available_slots.push({ date, time });
+    protectDoctorSchedule(doctor, req.user);
     await doctor.save();
 
     res.status(200).json({ message: 'Slot added.', available_slots: doctor.available_slots });
@@ -82,11 +89,22 @@ export const addAvailableSlot = async (req, res) => {
   }
 };
 
+// Add a fixed monthly schedule entry (day of month + time)
+
+
 export const updateSpecialization = async (req, res) => {
   try {
-    const { specialization } = req.body;
+    if (req.user.role !== 'doctor') {
+      return res.status(403).json({ message: 'Only doctors can update a specialization.' });
+    }
+
+    const specialization = req.body.specialization?.trim();
     if (!specialization) {
       return res.status(400).json({ message: 'Specialization is required.' });
+    }
+
+    if (specialization.length > 100) {
+      return res.status(400).json({ message: 'Specialization must be 100 characters or fewer.' });
     }
 
     let doctor = await Doctor.findOne({ user_id: req.user._id });
@@ -102,9 +120,20 @@ export const updateSpecialization = async (req, res) => {
       doctor.specialization = specialization;
     }
 
+    doctor.profile_rsa_envelope = encryptMetadataForUser({
+      doctor_id: doctor._id.toString(),
+      user_id: req.user._id.toString(),
+      name: req.user.name,
+      specialization,
+      qualification: doctor.qualification || ''
+    }, req.user);
+
     await doctor.save();
 
-    res.status(200).json({ message: 'Specialization updated.' });
+    res.status(200).json({
+      message: 'Specialization updated.',
+      specialization: doctor.specialization
+    });
   } catch (error) {
     res.status(500).json({ message: 'Server error: ' + error.message });
   }
@@ -119,6 +148,7 @@ export const deleteSlot = async (req, res) => {
   doctor.available_slots = doctor.available_slots.filter(
     (slot) => !(slot.date === date && slot.time === time)
   );
+  protectDoctorSchedule(doctor, req.user);
   await doctor.save();
 
   res.status(200).json({ message: 'Slot removed.', available_slots: doctor.available_slots });
@@ -193,6 +223,7 @@ export const createPrescription = async (req, res) => {
       notes: notes || '',
       medicines: medicines.map(med => ({
         medicine_id: med.medicine_id,
+        medicine_name: med.name || med.medicine_name || '',
         dosage: med.dosage || '',
         duration: med.duration || '',
         timing: {
@@ -208,11 +239,26 @@ export const createPrescription = async (req, res) => {
       })) : []
     });
 
+    const patient = await User.findById(appointment.patient_id);
+    if (!patient?.rsa_public_key || !patient?.ecc_public_key) {
+      return res.status(409).json({ message: 'Patient encryption keys are missing.' });
+    }
+    protectPrescriptionForPatient(prescription, patient);
     await prescription.save();
 
     // Update appointment status to 'treated' and link prescription
     appointment.status = 'treated';
     appointment.prescription_id = prescription._id;
+    appointment.patient_metadata_rsa_envelope = encryptMetadataForUser({
+      record_type: 'appointment',
+      appointment_id: appointment._id.toString(),
+      doctor_id: appointment.doctor_id.toString(),
+      patient_id: appointment.patient_id.toString(),
+      date: appointment.date,
+      time: appointment.time,
+      status: 'treated',
+      prescription_id: prescription._id.toString()
+    }, patient);
     await appointment.save();
 
     // If tests were provided, create a TestReport document linked to this prescription
@@ -238,12 +284,14 @@ export const createPrescription = async (req, res) => {
           reportTests.push({ test: testId, testName, showingDate });
         }
 
-        await TestReport.create({
+        const testReport = new TestReport({
           prescription: prescription._id,
           patient: appointment.patient_id,
           doctor: req.user._id,
           tests: reportTests
         });
+        protectTestBookingForPatient(testReport, patient);
+        await testReport.save();
       } catch (err) {
         console.error('Failed to create TestReport for prescription:', err);
       }
@@ -394,6 +442,11 @@ export const addTestSuggestion = async (req, res) => {
       status: 'suggested'
     });
 
+    const patient = await User.findById(prescription.patient_id);
+    if (!patient?.rsa_public_key || !patient?.ecc_public_key) {
+      return res.status(409).json({ message: 'Patient encryption keys are missing.' });
+    }
+    protectPrescriptionForPatient(prescription, patient);
     await prescription.save();
 
     res.status(200).json({
@@ -439,6 +492,11 @@ export const uploadTestReport = async (req, res) => {
     test.report_date = new Date();
     test.status = 'completed';
 
+    const patient = await User.findById(prescription.patient_id);
+    if (!patient?.rsa_public_key || !patient?.ecc_public_key) {
+      return res.status(409).json({ message: 'Patient encryption keys are missing.' });
+    }
+    protectPrescriptionForPatient(prescription, patient);
     await prescription.save();
 
     res.status(200).json({

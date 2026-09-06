@@ -1,6 +1,7 @@
 import User from '../models/User.js';
 import Bed from '../models/Bed.js';
 import Reservation from '../models/Reservation.js';
+import { encryptMetadataForUser } from '../utils/recordProtection.js';
 
 // Helper: get active reservation for a bed (no checkout date)
 const getActiveReservationMap = async (beds, type) => {
@@ -133,13 +134,24 @@ export const createReservation = async (req, res) => {
       return res.status(400).json({ message: 'Bed is already occupied' });
     }
 
-    const reservation = await Reservation.create({
+    const reservation = new Reservation({
       bed_id,
       patient_id,
       type,
       check_in_date: new Date(check_in_date),
       status: 'booked',
     });
+    reservation.patient_rsa_envelope = encryptMetadataForUser({
+      record_type: 'cabin-booking',
+      reservation_id: reservation._id.toString(),
+      bed_id: bed._id.toString(),
+      patient_id: patient._id.toString(),
+      type,
+      check_in_date: new Date(check_in_date).toISOString(),
+      status: 'booked'
+    }, patient);
+    reservation.patient_key_version = patient.key_version || 1;
+    await reservation.save();
 
     res.status(201).json({
       message: 'Reservation created successfully',
@@ -167,6 +179,19 @@ export const checkoutReservation = async (req, res) => {
 
     reservation.check_out_date = new Date();
     reservation.status = 'checked_out';
+    const patient = await User.findById(reservation.patient_id);
+    if (patient?.rsa_public_key && patient?.ecc_public_key) {
+      reservation.patient_rsa_envelope = encryptMetadataForUser({
+        record_type: 'cabin-booking',
+        reservation_id: reservation._id.toString(),
+        bed_id: reservation.bed_id.toString(),
+        patient_id: reservation.patient_id.toString(),
+        type: reservation.type,
+        check_in_date: reservation.check_in_date.toISOString(),
+        check_out_date: reservation.check_out_date.toISOString(),
+        status: 'checked_out'
+      }, patient);
+    }
     await reservation.save();
 
     res.json({ message: 'Checkout successful', reservation });
